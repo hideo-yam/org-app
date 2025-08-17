@@ -139,16 +139,14 @@ export function DiagnosisForm({ onComplete }: DiagnosisFormProps) {
   };
 
   const currentQuestion = getCurrentQuestion();
-  // 最後の質問かどうかを判定
-  // 注意: dynamicQuestionsの長さは常に4（q1-q4）であるべき
-  const isLastQuestion = currentQuestionIndex >= 3; // q4（index=3）が最後の質問
+  // 最後の質問かどうかを判定（シンプルに）
+  const isLastQuestion = currentQuestionIndex === 3; // q4（index=3）が最後の質問
   
-  console.log('Current state:', {
-    currentQuestionIndex,
-    questionsLength: dynamicQuestions.length,
-    isLastQuestion,
-    currentQuestionId: currentQuestion.id,
-    allQuestionIds: dynamicQuestions.map(q => q.id)
+  console.log('📊 Current state:', {
+    index: currentQuestionIndex,
+    questionId: currentQuestion.id,
+    isLast: isLastQuestion,
+    answersCount: answers.length
   });
 
   const getCuisineDisplayName = (cuisineType: string): string => {
@@ -215,26 +213,30 @@ export function DiagnosisForm({ onComplete }: DiagnosisFormProps) {
       // シンプルなナビゲーションロジック
       let nextIndex;
       
-      // 質問IDベースで判定（より確実）
-      if (currentQuestion.id === 'q1') {
-        // 第1問から
+      // シンプルなインデックスベースのナビゲーション
+      if (currentQuestionIndex === 0) {
+        // 第1問から第2問へ（または第3問へ直接）
         if (selectedOptions[0] === 'various') {
           nextIndex = 2; // q3（甘い飲み物の質問）に直接移動
           setSkipQ2(true);
-          console.log('Skipping Q2 due to various selection, going to index 2');
+          console.log('🚀 Q1->Q3: Skipping Q2 due to various selection');
         } else {
           nextIndex = 1; // q2（動的質問）に移動
           setSkipQ2(false);
-          console.log('Going to Q2 (dynamic question), index 1');
+          console.log('🚀 Q1->Q2: Going to dynamic question');
         }
-      } else if (currentQuestion.id === 'q2' || currentQuestionIndex === 1) {
-        // 第2問（動的質問）から第3問へ - IDまたはインデックスで判定
+      } else if (currentQuestionIndex === 1) {
+        // 第2問から第3問へ（確実に）
         nextIndex = 2;
-        console.log('Going from Q2 to Q3, index 2 (questionId:', currentQuestion.id, 'index:', currentQuestionIndex, ')');
+        console.log('🚀 Q2->Q3: Going from dynamic question to Q3');
+      } else if (currentQuestionIndex === 2) {
+        // 第3問から第4問へ
+        nextIndex = 3;
+        console.log('🚀 Q3->Q4: Going to final question');
       } else {
         // 通常の順次移動
         nextIndex = currentQuestionIndex + 1;
-        console.log('Normal progression to index:', nextIndex);
+        console.log('🚀 Normal progression to index:', nextIndex);
       }
       
       console.log('Moving to question index:', nextIndex);
@@ -254,7 +256,16 @@ export function DiagnosisForm({ onComplete }: DiagnosisFormProps) {
       
     } catch (error) {
       console.error('❌ CRITICAL ERROR in handleNext:', error);
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('Error details:', {
+        currentIndex: currentQuestionIndex,
+        currentQuestionId: currentQuestion.id,
+        selectedOptions,
+        answersLength: answers.length,
+        isLastQuestion,
+        nextIndex: nextIndex || 'undefined'
+      });
+      // エラーが発生した場合も強制的に次に進む
+      setCurrentQuestionIndex(Math.min(currentQuestionIndex + 1, 3));
     }
   };
 
@@ -363,13 +374,7 @@ export function DiagnosisForm({ onComplete }: DiagnosisFormProps) {
     return result;
   };
 
-  console.log('🎨 RENDERING DiagnosisForm with:', {
-    currentQuestionIndex,
-    currentQuestionId: currentQuestion.id,
-    questionsLength: dynamicQuestions.length,
-    selectedOptions,
-    isLastQuestion
-  });
+  console.log('🎨 RENDER Q' + (currentQuestionIndex + 1) + ':', currentQuestion.id, 'isLast:', isLastQuestion);
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
