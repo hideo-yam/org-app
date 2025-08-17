@@ -1,5 +1,6 @@
 import { DiagnosisResult } from '@/lib/types/diagnosis';
 import { SakeProfile, sakeData } from '@/lib/data/sake-data';
+import { calculateCuisineCompatibility, calculateSpecificDishCompatibility, getCuisineDescription } from '@/lib/data/cuisine-compatibility';
 
 export interface RecommendationScore {
   sake: SakeProfile;
@@ -9,15 +10,32 @@ export interface RecommendationScore {
 
 export function recommendSakes(
   diagnosisResult: DiagnosisResult,
-  count: number = 3
+  count: number = 3,
+  cuisineType?: string,
+  specificDish?: string
 ): RecommendationScore[] {
   const recommendations: RecommendationScore[] = sakeData.map(sake => {
-    const score = calculateCompatibilityScore(sake, diagnosisResult);
-    const matchReasons = generateMatchReasons(sake, diagnosisResult);
+    const baseScore = calculateCompatibilityScore(sake, diagnosisResult);
+    
+    // 料理相性スコアを追加
+    let cuisineScore = 0;
+    if (specificDish) {
+      // 具体的な料理が選択されている場合はより精密なスコア計算
+      cuisineScore = calculateSpecificDishCompatibility(specificDish, sake);
+    } else if (cuisineType && cuisineType !== 'various') {
+      cuisineScore = calculateCuisineCompatibility(cuisineType, sake);
+    }
+    
+    // 基本スコア（50%）+ 料理相性スコア（50%）- 具体的な料理の場合はより重要視
+    const cuisineWeight = specificDish ? 0.5 : 0.4;
+    const baseWeight = specificDish ? 0.5 : 0.6;
+    const finalScore = baseScore * baseWeight + cuisineScore * cuisineWeight;
+    
+    const matchReasons = generateMatchReasons(sake, diagnosisResult, cuisineType, specificDish);
     
     return {
       sake,
-      score,
+      score: finalScore,
       matchReasons
     };
   });
@@ -64,7 +82,9 @@ function calculateCompatibilityScore(
 
 function generateMatchReasons(
   sake: SakeProfile,
-  diagnosis: DiagnosisResult
+  diagnosis: DiagnosisResult,
+  cuisineType?: string,
+  specificDish?: string
 ): string[] {
   const reasons: string[] = [];
 
@@ -114,6 +134,38 @@ function generateMatchReasons(
     }
   }
 
+  // 料理相性の理由を追加
+  if (specificDish) {
+    // 具体的な料理が選択されている場合
+    const dishScore = calculateSpecificDishCompatibility(specificDish, sake);
+    if (dishScore > 5) {
+      const dishNames = {
+        'sashimi_sushi': '刺身・寿司',
+        'nimono': '煮物',
+        'yakimono': '焼き物',
+        'agemono': '揚げ物',
+        'tenshin': '天津料理',
+        'strong_taste': '濃い味の中華',
+        'light_taste': '薄味の中華',
+        'chinese_fried': '中華揚げ物',
+        'carpaccio_oyster': 'カルパッチョ・生牡蠣',
+        'meat_dish': '肉料理',
+        'fish_dish': '魚料理',
+        'gibier': 'ジビエ料理'
+      };
+      const dishName = dishNames[specificDish as keyof typeof dishNames];
+      if (dishName) {
+        reasons.push(`${dishName}との相性抜群`);
+      }
+    }
+  } else if (cuisineType && cuisineType !== 'various') {
+    const cuisineScore = calculateCuisineCompatibility(cuisineType, sake);
+    if (cuisineScore > 5) {
+      const description = getCuisineDescription(cuisineType);
+      reasons.push(description.replace('日本酒をお勧めします。', '相性'));
+    }
+  }
+
   // タグベースの追加理由
   if (sake.tags.includes('初心者向け')) {
     reasons.push('日本酒初心者にもおすすめ');
@@ -131,9 +183,11 @@ function generateMatchReasons(
 export function getSakeTypeDescription(type: SakeProfile['type']): string {
   const descriptions = {
     '純米': '米と米麹のみで造られた、米の旨味を感じられる日本酒',
+    '純米酒': '米と米麹のみで造られた、米の旨味を感じられる日本酒',
     '純米吟醸': '吟醸造りで香り高く、米の旨味も楽しめる上品な日本酒',
     '純米大吟醸': '最高級の製法で造られた、香り豊かで繊細な味わいの日本酒',
     '吟醸': '香り高く淡麗で、上品な味わいが特徴の日本酒',
+    '吟醸酒': '香り高く淡麗で、上品な味わいが特徴の日本酒',
     '大吟醸': '最高級の吟醸酒。華やかな香りと洗練された味わい',
     '本醸造': '飲み飽きしない、バランスの良いスタンダードな日本酒',
     '普通酒': '日常的に楽しめる、親しみやすい日本酒'

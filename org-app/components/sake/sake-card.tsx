@@ -10,23 +10,16 @@ import { Button } from '@/components/ui/button';
 interface SakeCardProps {
   sake: SakeProfile;
   matchReasons?: string[];
-  score?: number;
   onPurchase?: (sake: SakeProfile) => void;
 }
 
-export function SakeCard({ sake, matchReasons, score, onPurchase }: SakeCardProps) {
+export function SakeCard({ sake, matchReasons, onPurchase }: SakeCardProps) {
   const handlePurchaseClick = () => {
     if (onPurchase) {
       onPurchase(sake);
     } else {
       purchaseHandler.handlePurchase(sake, 'diagnosis');
     }
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 8) return 'text-green-600 bg-green-50';
-    if (score >= 6) return 'text-yellow-600 bg-yellow-50';
-    return 'text-gray-600 bg-gray-50';
   };
 
   const getCharacteristicBar = (value: number, label: string) => (
@@ -47,16 +40,9 @@ export function SakeCard({ sake, matchReasons, score, onPurchase }: SakeCardProp
   return (
     <Card className="w-full max-w-md mx-auto sake-card-hover">
       <CardHeader>
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-lg">{sake.name}</CardTitle>
-            <p className="text-sm text-gray-600">{sake.brewery} ({sake.prefecture})</p>
-          </div>
-          {score && (
-            <Badge className={getScoreColor(score)}>
-              マッチ度 {score}/10
-            </Badge>
-          )}
+        <div>
+          <CardTitle className="text-lg">{sake.name}</CardTitle>
+          <p className="text-sm text-gray-600">{sake.brewery} ({sake.prefecture})</p>
         </div>
       </CardHeader>
       

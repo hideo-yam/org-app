@@ -1,0 +1,61 @@
+[
+  {
+    "id": "sake001",
+    "name": "〇〇正宗",
+    "brewery": "正宗酒造",
+    "price": 1500,
+    "alcoholContent": 12.0,
+    "riceMilling": 70,
+    "sweetness": 6.7,
+    "richness": 6.0,
+    "acidity": 3.0,
+    "aroma": 6,
+    "type": "純米酒",
+    "prefecture": "新潟県",
+    "description": "純米酒の特徴を活かした、Aタイプの日本酒です。",
+    "ecUrl": "https://example-ec.com/sake001",
+    "tags": [
+      "おすすめ"
+    ]
+  },
+  {
+    "id": "sake002",
+    "name": "××錦",
+    "brewery": "錦酒造",
+    "price": 2000,
+    "alcoholContent": 18.0,
+    "riceMilling": 55,
+    "sweetness": 2.7,
+    "richness": 9.0,
+    "acidity": 6.0,
+    "aroma": 8,
+    "type": "吟醸酒",
+    "prefecture": "京都府",
+    "description": "吟醸酒の特徴を活かした、Bタイプの日本酒です。",
+    "ecUrl": "https://example-ec.com/sake002",
+    "tags": [
+      "辛口",
+      "フルーティー",
+      "華やか"
+    ]
+  },
+  {
+    "id": "sake003",
+    "name": "△△男山",
+    "brewery": "男山酒造",
+    "price": 1000,
+    "alcoholContent": 15.0,
+    "riceMilling": 70,
+    "sweetness": 5.0,
+    "richness": 7.5,
+    "acidity": 3.0,
+    "aroma": 4,
+    "type": "普通酒",
+    "prefecture": "北海道",
+    "description": "普通酒の特徴を活かした、Cタイプの日本酒です。",
+    "ecUrl": "https://example-ec.com/sake003",
+    "tags": [
+      "コスパ良"
+    ]
+  }
+]

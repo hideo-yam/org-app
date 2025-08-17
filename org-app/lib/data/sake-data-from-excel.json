@@ -1,0 +1,78 @@
+[
+  {
+    "name": "日本酒_1",
+    "id": "sake001",
+    "brewery": "未設定",
+    "price": 3000,
+    "alcoholContent": 15.0,
+    "riceMilling": 60,
+    "sweetness": 5,
+    "richness": 5,
+    "acidity": 5,
+    "aroma": 5,
+    "type": "純米",
+    "prefecture": "未設定",
+    "description": "美味しい日本酒です。",
+    "ecUrl": "https://example-ec.com/sake001",
+    "tags": [
+      "おすすめ"
+    ]
+  },
+  {
+    "name": "日本酒_2",
+    "id": "sake002",
+    "brewery": "未設定",
+    "price": 3000,
+    "alcoholContent": 15.0,
+    "riceMilling": 60,
+    "sweetness": 5,
+    "richness": 5,
+    "acidity": 5,
+    "aroma": 5,
+    "type": "純米",
+    "prefecture": "未設定",
+    "description": "美味しい日本酒です。",
+    "ecUrl": "https://example-ec.com/sake002",
+    "tags": [
+      "おすすめ"
+    ]
+  },
+  {
+    "name": "日本酒_3",
+    "id": "sake003",
+    "brewery": "未設定",
+    "price": 3000,
+    "alcoholContent": 15.0,
+    "riceMilling": 60,
+    "sweetness": 5,
+    "richness": 5,
+    "acidity": 5,
+    "aroma": 5,
+    "type": "純米",
+    "prefecture": "未設定",
+    "description": "美味しい日本酒です。",
+    "ecUrl": "https://example-ec.com/sake003",
+    "tags": [
+      "おすすめ"
+    ]
+  },
+  {
+    "name": "日本酒_4",
+    "id": "sake004",
+    "brewery": "未設定",
+    "price": 3000,
+    "alcoholContent": 15.0,
+    "riceMilling": 60,
+    "sweetness": 5,
+    "richness": 5,
+    "acidity": 5,
+    "aroma": 5,
+    "type": "純米",
+    "prefecture": "未設定",
+    "description": "美味しい日本酒です。",
+    "ecUrl": "https://example-ec.com/sake004",
+    "tags": [
+      "おすすめ"
+    ]
+  }
+]

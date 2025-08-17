@@ -98,7 +98,6 @@ export function RecommendationResults({
               <SakeCard
                 sake={recommendation.sake}
                 matchReasons={recommendation.matchReasons}
-                score={recommendation.score}
               />
             </div>
           ))}

@@ -33,46 +33,141 @@ export interface DiagnosisResult {
   aroma: number;
 }
 
+// 動的質問生成用の料理種類データ
+export const cuisineSpecificOptions = {
+  japanese: [
+    {
+      id: 'sashimi_sushi',
+      text: '刺身・寿司',
+      value: 'sashimi_sushi',
+      weight: { sweetness: 0, richness: 1, acidity: 2, aroma: 0 },
+      compatibility: { sakeMinLevel: 0, sakeMaxLevel: 5, acidityMin: 0, acidityMax: 2, alcoholMin: 10, alcoholMax: 16 }
+    },
+    {
+      id: 'nimono',
+      text: '煮物',
+      value: 'nimono',
+      weight: { sweetness: 1, richness: 1, acidity: 0, aroma: 1 },
+      compatibility: { sakeMinLevel: -3, sakeMaxLevel: 5, acidityMin: 0, acidityMax: 1, alcoholMin: 10, alcoholMax: 16 }
+    },
+    {
+      id: 'yakimono',
+      text: '焼き物',
+      value: 'yakimono',
+      weight: { sweetness: 0, richness: 2, acidity: 1, aroma: 1 },
+      compatibility: { sakeMinLevel: 0, sakeMaxLevel: 15, acidityMin: 1, acidityMax: 2, alcoholMin: 15, alcoholMax: 20 }
+    },
+    {
+      id: 'agemono',
+      text: '揚げ物',
+      value: 'agemono',
+      weight: { sweetness: 0, richness: 2, acidity: 1, aroma: 1 },
+      compatibility: { sakeMinLevel: 0, sakeMaxLevel: 15, acidityMin: 1, acidityMax: 2, alcoholMin: 10, alcoholMax: 18 }
+    }
+  ],
+  chinese: [
+    {
+      id: 'tenshin',
+      text: '天津（甘酢系）',
+      value: 'tenshin',
+      weight: { sweetness: 2, richness: 1, acidity: 1, aroma: 1 },
+      compatibility: { sakeMinLevel: -5, sakeMaxLevel: 5, acidityMin: 0, acidityMax: 2, alcoholMin: 10, alcoholMax: 15 }
+    },
+    {
+      id: 'strong_taste',
+      text: '濃い味（四川・麻婆など）',
+      value: 'strong_taste',
+      weight: { sweetness: -1, richness: 3, acidity: 2, aroma: 0 },
+      compatibility: { sakeMinLevel: -5, sakeMaxLevel: 5, acidityMin: 0, acidityMax: 3, alcoholMin: 10, alcoholMax: 18 }
+    },
+    {
+      id: 'light_taste',
+      text: '薄味（蒸し物・炒め物）',
+      value: 'light_taste',
+      weight: { sweetness: 1, richness: 0, acidity: 0, aroma: 1 },
+      compatibility: { sakeMinLevel: 0, sakeMaxLevel: 10, acidityMin: 0, acidityMax: 1, alcoholMin: 10, alcoholMax: 15 }
+    },
+    {
+      id: 'chinese_fried',
+      text: '中華揚げ物',
+      value: 'chinese_fried',
+      weight: { sweetness: 0, richness: 2, acidity: 1, aroma: 0 },
+      compatibility: { sakeMinLevel: 2, sakeMaxLevel: 15, acidityMin: 0, acidityMax: 1, alcoholMin: 10, alcoholMax: 16 }
+    }
+  ],
+  western: [
+    {
+      id: 'carpaccio_oyster',
+      text: 'カルパッチョ・生牡蠣',
+      value: 'carpaccio_oyster',
+      weight: { sweetness: 1, richness: -1, acidity: 2, aroma: 2 },
+      compatibility: { sakeMinLevel: 2, sakeMaxLevel: 15, acidityMin: 1, acidityMax: 3, alcoholMin: 12, alcoholMax: 18 }
+    },
+    {
+      id: 'meat_dish',
+      text: '肉料理（ステーキ・ローストなど）',
+      value: 'meat_dish',
+      weight: { sweetness: 0, richness: 2, acidity: 1, aroma: 1 },
+      compatibility: { sakeMinLevel: 0, sakeMaxLevel: 18, acidityMin: 0, acidityMax: 2, alcoholMin: 12, alcoholMax: 16 }
+    },
+    {
+      id: 'fish_dish',
+      text: '魚料理（ムニエル・グリルなど）',
+      value: 'fish_dish',
+      weight: { sweetness: 1, richness: 0, acidity: 1, aroma: 2 },
+      compatibility: { sakeMinLevel: 2, sakeMaxLevel: 18, acidityMin: 0, acidityMax: 2, alcoholMin: 15, alcoholMax: 16 }
+    },
+    {
+      id: 'gibier',
+      text: 'ジビエ（鹿・猪など）',
+      value: 'gibier',
+      weight: { sweetness: 1, richness: 3, acidity: 2, aroma: 0 },
+      compatibility: { sakeMinLevel: -2, sakeMaxLevel: 5, acidityMin: 1, acidityMax: 3, alcoholMin: 15, alcoholMax: 18 }
+    }
+  ]
+};
+
 export const diagnosisQuestions: DiagnosisQuestion[] = [
   {
     id: 'q1',
-    question: '普段よく飲むお酒は何ですか？',
+    question: 'どのジャンルの料理と一緒に日本酒を楽しみたいですか？',
     type: 'single',
     options: [
       {
-        id: 'beer',
-        text: 'ビール',
-        value: 'beer',
-        weight: { sweetness: 3, richness: 5, acidity: 6, aroma: 4 }
+        id: 'japanese',
+        text: '和食',
+        value: 'japanese',
+        weight: { sweetness: 5, richness: 6, acidity: 4, aroma: 6 }
       },
       {
-        id: 'wine',
-        text: 'ワイン',
-        value: 'wine',
-        weight: { sweetness: 6, richness: 6, acidity: 7, aroma: 8 }
+        id: 'chinese',
+        text: '中華料理',
+        value: 'chinese',
+        weight: { sweetness: 4, richness: 7, acidity: 5, aroma: 5 }
       },
       {
-        id: 'cocktail',
-        text: 'カクテル・チューハイ',
-        value: 'cocktail',
-        weight: { sweetness: 8, richness: 3, acidity: 5, aroma: 7 }
+        id: 'western',
+        text: '洋食',
+        value: 'western',
+        weight: { sweetness: 6, richness: 5, acidity: 6, aroma: 7 }
       },
       {
-        id: 'whiskey',
-        text: 'ウイスキー・焼酎',
-        value: 'whiskey',
-        weight: { sweetness: 2, richness: 8, acidity: 3, aroma: 5 }
-      },
-      {
-        id: 'none',
-        text: 'あまり飲まない',
-        value: 'none',
+        id: 'various',
+        text: '色々な料理と合わせたい',
+        value: 'various',
         weight: { sweetness: 5, richness: 5, acidity: 5, aroma: 5 }
       }
     ]
   },
+  // q2は動的に生成されるため、ここでは空の placeholder
   {
     id: 'q2',
+    question: '', // 動的に設定
+    type: 'single',
+    options: [] // 動的に設定
+  },
+  {
+    id: 'q3',
     question: '甘い飲み物は好きですか？',
     type: 'scale',
     scaleMin: 1,
@@ -80,98 +175,11 @@ export const diagnosisQuestions: DiagnosisQuestion[] = [
     scaleLabels: ['苦手', '大好き']
   },
   {
-    id: 'q3',
+    id: 'q4',
     question: '香りの強い食べ物・飲み物は好きですか？',
     type: 'scale',
     scaleMin: 1,
     scaleMax: 10,
     scaleLabels: ['控えめが好き', '華やかが好き']
-  },
-  {
-    id: 'q4',
-    question: '飲み物の味について、どちらが好みですか？',
-    type: 'single',
-    options: [
-      {
-        id: 'light',
-        text: 'あっさり・すっきり',
-        value: 'light',
-        weight: { sweetness: 0, richness: -3, acidity: 2, aroma: -1 }
-      },
-      {
-        id: 'rich',
-        text: 'コクがある・濃厚',
-        value: 'rich',
-        weight: { sweetness: 0, richness: 3, acidity: -1, aroma: 1 }
-      }
-    ]
-  },
-  {
-    id: 'q5',
-    question: '食事のシーンで日本酒を飲むとしたら？（複数選択可）',
-    type: 'multiple',
-    options: [
-      {
-        id: 'sushi',
-        text: '寿司・刺身',
-        value: 'sushi',
-        weight: { sweetness: -1, richness: 1, acidity: 2, aroma: 0 }
-      },
-      {
-        id: 'yakitori',
-        text: '焼き鳥・居酒屋料理',
-        value: 'yakitori',
-        weight: { sweetness: 0, richness: 2, acidity: 1, aroma: 1 }
-      },
-      {
-        id: 'japanese',
-        text: '和食（煮物・天ぷら等）',
-        value: 'japanese',
-        weight: { sweetness: 1, richness: 1, acidity: 0, aroma: 1 }
-      },
-      {
-        id: 'western',
-        text: '洋食',
-        value: 'western',
-        weight: { sweetness: 1, richness: 0, acidity: 1, aroma: 2 }
-      },
-      {
-        id: 'alone',
-        text: 'ひとりで楽しむ',
-        value: 'alone',
-        weight: { sweetness: 2, richness: 0, acidity: 0, aroma: 2 }
-      }
-    ]
-  },
-  {
-    id: 'q6',
-    question: '日本酒の温度について',
-    type: 'single',
-    options: [
-      {
-        id: 'cold',
-        text: '冷たい方が好き',
-        value: 'cold',
-        weight: { sweetness: 1, richness: -1, acidity: 1, aroma: 2 }
-      },
-      {
-        id: 'room',
-        text: '常温が好き',
-        value: 'room',
-        weight: { sweetness: 0, richness: 1, acidity: 0, aroma: 0 }
-      },
-      {
-        id: 'warm',
-        text: '温かい方が好き',
-        value: 'warm',
-        weight: { sweetness: 0, richness: 2, acidity: -1, aroma: -1 }
-      },
-      {
-        id: 'unknown',
-        text: 'わからない',
-        value: 'unknown',
-        weight: { sweetness: 0, richness: 0, acidity: 0, aroma: 0 }
-      }
-    ]
   }
 ];

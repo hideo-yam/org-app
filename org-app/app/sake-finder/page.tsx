@@ -21,9 +21,9 @@ export default function SakeFinderPage() {
     setCurrentState('diagnosis');
   };
 
-  const handleDiagnosisComplete = (result: DiagnosisResult) => {
+  const handleDiagnosisComplete = (result: DiagnosisResult & { cuisineType?: string; specificDish?: string }) => {
     setDiagnosisResult(result);
-    const sakeRecommendations = recommendSakes(result, 3);
+    const sakeRecommendations = recommendSakes(result, 3, result.cuisineType, result.specificDish);
     setRecommendations(sakeRecommendations);
     setCurrentState('results');
   };
@@ -56,7 +56,7 @@ export default function SakeFinderPage() {
               </div>
               <h3 className="font-semibold text-gray-900">簡単診断</h3>
               <p className="text-sm text-gray-600">
-                6つの質問に答えるだけ
+                4つの質問に答えるだけ
               </p>
             </div>
             <div className="space-y-3">
