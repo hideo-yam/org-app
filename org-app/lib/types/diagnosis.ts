@@ -168,7 +168,7 @@ export const diagnosisQuestions: DiagnosisQuestion[] = [
   },
   {
     id: 'q3',
-    question: '甘い飲み物は好きですか？',
+    question: '甘口が好みですか？',
     type: 'scale',
     scaleMin: 1,
     scaleMax: 10,
@@ -176,7 +176,7 @@ export const diagnosisQuestions: DiagnosisQuestion[] = [
   },
   {
     id: 'q4',
-    question: '香りの強い食べ物・飲み物は好きですか？',
+    question: '香りの高いお酒が好みですか？',
     type: 'scale',
     scaleMin: 1,
     scaleMax: 10,

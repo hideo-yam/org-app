@@ -1,7 +1,7 @@
 'use client';
 
 import { SakeProfile } from '@/lib/data/sake-data';
-import { getSakeTypeDescription } from '@/lib/recommendation/sake-recommender';
+import { getSakeTypeDescription, getSakeTypeCategoryDescription } from '@/lib/recommendation/sake-recommender';
 import { purchaseHandler } from '@/lib/ec/purchase-handler';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -66,6 +66,18 @@ export function SakeCard({ sake, matchReasons, onPurchase }: SakeCardProps) {
             <span className="ml-2 font-medium">{sake.riceMilling}%</span>
           </div>
         </div>
+
+        {/* 4タイプ分類 */}
+        {sake.sakeTypeCategory && (
+          <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
+            <h4 className="text-sm font-semibold text-blue-800 mb-1">
+              4タイプ分類: {sake.sakeTypeCategory}
+            </h4>
+            <p className="text-xs text-blue-700">
+              {getSakeTypeCategoryDescription(sake.sakeTypeCategory)}
+            </p>
+          </div>
+        )}
 
         {/* 味の特徴グラフ */}
         <div className="bg-gray-50 p-4 rounded-lg">

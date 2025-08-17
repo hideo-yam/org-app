@@ -28,7 +28,6 @@ export function DiagnosisForm({ onComplete }: DiagnosisFormProps) {
     console.log('Question IDs:', diagnosisQuestions.map(q => q.id));
     return [...diagnosisQuestions];
   });
-  const [skipQ2, setSkipQ2] = useState(false); // q2をスキップするかどうかのフラグ
 
   // インデックス変更を監視
   useEffect(() => {
@@ -40,102 +39,24 @@ export function DiagnosisForm({ onComplete }: DiagnosisFormProps) {
     console.log('📝 Answers updated:', answers);
   }, [answers]);
 
-  // 現在の質問を動的に取得
+  // 現在の質問を取得（シンプル版）
   const getCurrentQuestion = (): DiagnosisQuestion => {
-    try {
-      const question = dynamicQuestions[currentQuestionIndex];
-      
-      console.log('getCurrentQuestion called:', {
-        currentQuestionIndex,
-        questionId: question?.id,
-        answersLength: answers.length,
-        allAnswers: answers
-      });
-      
-      // 質問が存在しない場合の安全チェック
-      if (!question) {
-        console.error('Question not found at index:', currentQuestionIndex);
-        return dynamicQuestions[0]; // デフォルトで最初の質問を返す
-      }
-      
-      // q2の場合の処理 - インデックスが1で第1問が回答済みの場合のみ動的生成
-      if (question.id === 'q2' && currentQuestionIndex === 1) {
-        console.log('Q2 processing:', {
-          questionId: question.id,
-          currentQuestionIndex,
-          answersLength: answers.length,
-          allAnswers: answers
-        });
-        
-        // 第1問の回答がある場合のみ動的生成
-        if (answers.length >= 1) {
-          const firstAnswer = answers[0];
-          const cuisineType = firstAnswer?.selectedOptions?.[0];
-          
-          console.log('Q2 generation attempt:', { cuisineType, firstAnswer });
-          
-          if (cuisineType && cuisineType !== 'various') {
-            const cuisineOptions = cuisineSpecificOptions[cuisineType as keyof typeof cuisineSpecificOptions];
-            
-            if (!cuisineOptions) {
-              console.error('Cuisine options not found for:', cuisineType);
-              // 強制的にq3に進む
-              return {
-                id: 'q3',
-                question: '甘い飲み物は好きですか？',
-                type: 'scale',
-                scaleMin: 1,
-                scaleMax: 10,
-                scaleLabels: ['苦手', '大好き']
-              };
-            }
-            
-            // DiagnosisOptionインターフェースに合わせてオプションを変換
-            const options = cuisineOptions.map(option => ({
-              id: option.id,
-              text: option.text,
-              value: option.value,
-              weight: option.weight
-            }));
-            
-            const dynamicQuestion = {
-              id: 'q2',
-              question: `どのような${getCuisineDisplayName(cuisineType)}がお好みですか？`,
-              type: 'single' as const,
-              options: options
-            };
-            
-            console.log('Generated dynamic Q2:', dynamicQuestion);
-            console.log('Options being displayed:', options.map(opt => ({ id: opt.id, text: opt.text })));
-            return dynamicQuestion;
-          } else {
-            // 'various'が選択された場合は次の質問（q3）にスキップ
-            console.log('Various selected, returning Q3');
-            return {
-              id: 'q3',
-              question: '甘い飲み物は好きですか？',
-              type: 'scale',
-              scaleMin: 1,
-              scaleMax: 10,
-              scaleLabels: ['苦手', '大好き']
-            };
-          }
-        }
-      }
-      
-      // 第3問以降では必ずオリジナルの質問を返す
-      console.log('Returning original question:', question.id, 'for index:', currentQuestionIndex);
-      return question;
-    } catch (error) {
-      console.error('Error in getCurrentQuestion:', error);
-      // エラーが発生した場合は最初の質問に戻る
-      return dynamicQuestions[0] || {
-        id: 'q1',
-        question: 'どのジャンルの料理と一緒に日本酒を楽しみたいですか？',
-        type: 'single',
-        options: []
-      };
+    const question = dynamicQuestions[currentQuestionIndex];
+    
+    console.log('🔍 getCurrentQuestion called:', {
+      currentQuestionIndex,
+      questionId: question?.id,
+      hasOptions: question?.options?.length || 0,
+      question: question
+    });
+    
+    // 質問が存在しない場合の安全チェック
+    if (!question) {
+      console.error('Question not found at index:', currentQuestionIndex);
+      return dynamicQuestions[0]; // デフォルトで最初の質問を返す
     }
+    
+    return question;
   };
 
   const currentQuestion = getCurrentQuestion();
@@ -210,19 +131,49 @@ export function DiagnosisForm({ onComplete }: DiagnosisFormProps) {
         console.log('Not the last question, proceeding to next');
       }
 
+      // 第1問の回答後、第2問の動的質問を準備
+      if (currentQuestionIndex === 0) {
+        const firstAnswerOption = selectedOptions[0];
+        if (firstAnswerOption && firstAnswerOption !== 'various') {
+          console.log('🔧 Preparing dynamic Q2 for cuisine:', firstAnswerOption);
+          
+          const cuisineOptions = cuisineSpecificOptions[firstAnswerOption as keyof typeof cuisineSpecificOptions];
+          if (cuisineOptions) {
+            const options = cuisineOptions.map(option => ({
+              id: option.id,
+              text: option.text,
+              value: option.value,
+              weight: option.weight
+            }));
+            
+            const dynamicQ2 = {
+              id: 'q2',
+              question: `どのような${getCuisineDisplayName(firstAnswerOption)}がお好みですか？`,
+              type: 'single' as const,
+              options: options
+            };
+            
+            // dynamicQuestionsを更新
+            const updatedQuestions = [...dynamicQuestions];
+            updatedQuestions[1] = dynamicQ2;
+            setDynamicQuestions(updatedQuestions);
+            
+            console.log('✅ Dynamic Q2 prepared:', dynamicQ2);
+          }
+        }
+      }
+
       // シンプルなナビゲーションロジック
-      let nextIndex;
+      let nextIndex: number;
       
       // シンプルなインデックスベースのナビゲーション
       if (currentQuestionIndex === 0) {
         // 第1問から第2問へ（または第3問へ直接）
         if (selectedOptions[0] === 'various') {
-          nextIndex = 2; // q3（甘い飲み物の質問）に直接移動
-          setSkipQ2(true);
+          nextIndex = 2; // q3（甘口の好みの質問）に直接移動
           console.log('🚀 Q1->Q3: Skipping Q2 due to various selection');
         } else {
           nextIndex = 1; // q2（動的質問）に移動
-          setSkipQ2(false);
           console.log('🚀 Q1->Q2: Going to dynamic question');
         }
       } else if (currentQuestionIndex === 1) {
@@ -262,7 +213,7 @@ export function DiagnosisForm({ onComplete }: DiagnosisFormProps) {
         selectedOptions,
         answersLength: answers.length,
         isLastQuestion,
-        nextIndex: nextIndex || 'undefined'
+        nextIndex: 'undefined'
       });
       // エラーが発生した場合も強制的に次に進む
       setCurrentQuestionIndex(Math.min(currentQuestionIndex + 1, 3));

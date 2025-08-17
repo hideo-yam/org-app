@@ -15,6 +15,7 @@ export interface SakeProfile {
   imageUrl?: string;
   ecUrl: string;
   tags: string[];
+  sakeTypeCategory?: '薫酒' | '爽酒' | '醇酒' | '熟酒'; // 4タイプ分類
 }
 
 // エクセルファイルから読み込んだ日本酒データ
@@ -32,9 +33,10 @@ export const sakeData: SakeProfile[] = [
     aroma: 6,
     type: "純米酒",
     prefecture: "新潟県",
-    description: "純米酒の特徴を活かした、Aタイプの日本酒です。やや甘口でまろやかな味わいが特徴。",
+    description: "純米酒の特徴を活かした、薫酒タイプの日本酒です。やや甘口でまろやかな味わいが特徴。",
     ecUrl: "https://example-ec.com/sake001",
-    tags: ["おすすめ", "甘口", "まろやか"]
+    tags: ["おすすめ", "甘口", "まろやか"],
+    sakeTypeCategory: "薫酒"
   },
   {
     id: "sake002",
@@ -49,9 +51,10 @@ export const sakeData: SakeProfile[] = [
     aroma: 8,
     type: "吟醸酒",
     prefecture: "京都府",
-    description: "吟醸酒の特徴を活かした、Bタイプの日本酒です。華やかな香りと辛口のキレが魅力。",
+    description: "吟醸酒の特徴を活かした、爽酒タイプの日本酒です。華やかな香りと辛口のキレが魅力。",
     ecUrl: "https://example-ec.com/sake002",
-    tags: ["辛口", "フルーティー", "華やか", "キレ"]
+    tags: ["辛口", "フルーティー", "華やか", "キレ"],
+    sakeTypeCategory: "爽酒"
   },
   {
     id: "sake003",
@@ -66,9 +69,10 @@ export const sakeData: SakeProfile[] = [
     aroma: 4,
     type: "普通酒",
     prefecture: "北海道",
-    description: "普通酒の特徴を活かした、Cタイプの日本酒です。コストパフォーマンスに優れた日常酒。",
+    description: "普通酒の特徴を活かした、醇酒タイプの日本酒です。コストパフォーマンスに優れた日常酒。",
     ecUrl: "https://example-ec.com/sake003",
-    tags: ["コスパ良", "日常酒", "バランス"]
+    tags: ["コスパ良", "日常酒", "バランス"],
+    sakeTypeCategory: "醇酒"
   }
 ];
 

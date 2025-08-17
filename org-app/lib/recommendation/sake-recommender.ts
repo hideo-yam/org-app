@@ -195,6 +195,18 @@ export function getSakeTypeDescription(type: SakeProfile['type']): string {
   return descriptions[type] || '';
 }
 
+export function getSakeTypeCategoryDescription(category: SakeProfile['sakeTypeCategory']): string {
+  if (!category) return '';
+  
+  const descriptions = {
+    '薫酒': '香り高く、フルーティーで華やかな日本酒。吟醸酒に多いタイプ',
+    '爽酒': 'すっきりと軽やか、清涼感のある日本酒。飲みやすく親しみやすい',
+    '醇酒': 'コクがあり旨味豊か、しっかりとした味わいの日本酒。純米酒に多い',
+    '熟酒': '深いコクと複雑な味わい、熟成による独特の風味を持つ日本酒'
+  };
+  return descriptions[category] || '';
+}
+
 export function getPreferenceDescription(diagnosis: DiagnosisResult): string {
   const sweetness = diagnosis.sweetness >= 7 ? '甘口' : 
                    diagnosis.sweetness <= 4 ? '辛口' : '中口';
