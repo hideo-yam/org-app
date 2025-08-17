@@ -66,3 +66,57 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* カスタムスライダーのスタイル */
+@layer components {
+  .slider {
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .slider::-webkit-slider-track {
+    @apply w-full h-2 bg-gray-200 rounded-lg;
+  }
+
+  .slider::-webkit-slider-thumb {
+    appearance: none;
+    @apply h-5 w-5 bg-blue-600 rounded-full cursor-pointer shadow-md;
+    border: 2px solid white;
+    margin-top: -6px;
+  }
+
+  .slider::-webkit-slider-thumb:hover {
+    @apply bg-blue-700 shadow-lg;
+  }
+
+  .slider::-moz-range-track {
+    @apply w-full h-2 bg-gray-200 rounded-lg border-none;
+  }
+
+  .slider::-moz-range-thumb {
+    appearance: none;
+    @apply h-5 w-5 bg-blue-600 rounded-full cursor-pointer shadow-md;
+    border: 2px solid white;
+  }
+
+  .slider::-moz-range-thumb:hover {
+    @apply bg-blue-700 shadow-lg;
+  }
+}
+
+/* 日本酒アプリ専用のスタイル */
+@layer utilities {
+  .sake-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  
+  .sake-card-hover {
+    transition: all 0.3s ease;
+  }
+  
+  .sake-card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+}
