@@ -62,15 +62,28 @@ export function sakeDegreeToSweetnessScale(sakeDegree: number): number {
   return Math.max(1, Math.min(10, 6 - (sakeDegree / 3)));
 }
 
+// 料理の相性データ型定義
+interface DishCompatibility {
+  id: string;
+  compatibility: {
+    sakeMinLevel: number;
+    sakeMaxLevel: number;
+    acidityMin: number;
+    acidityMax: number;
+    alcoholMin: number;
+    alcoholMax: number;
+  };
+}
+
 // 具体的な料理種類に基づく日本酒の相性スコアを計算
 export function calculateSpecificDishCompatibility(
   dishType: string,
   sake: { sweetness: number; acidity: number; alcoholContent: number }
 ): number {
   // 全ての料理種類データから該当するものを検索
-  let dishData: any = null;
+  let dishData: DishCompatibility | null = null;
   
-  for (const [cuisineKey, dishes] of Object.entries({
+  const cuisineData = {
     japanese: [
       { id: 'sashimi_sushi', compatibility: { sakeMinLevel: 0, sakeMaxLevel: 5, acidityMin: 0, acidityMax: 2, alcoholMin: 10, alcoholMax: 16 }},
       { id: 'nimono', compatibility: { sakeMinLevel: -3, sakeMaxLevel: 5, acidityMin: 0, acidityMax: 1, alcoholMin: 10, alcoholMax: 16 }},
@@ -89,8 +102,10 @@ export function calculateSpecificDishCompatibility(
       { id: 'fish_dish', compatibility: { sakeMinLevel: 2, sakeMaxLevel: 18, acidityMin: 0, acidityMax: 2, alcoholMin: 15, alcoholMax: 16 }},
       { id: 'gibier', compatibility: { sakeMinLevel: -2, sakeMaxLevel: 5, acidityMin: 1, acidityMax: 3, alcoholMin: 15, alcoholMax: 18 }}
     ]
-  })) {
-    const dish = (dishes as any[]).find(d => d.id === dishType);
+  };
+  
+  for (const dishes of Object.values(cuisineData)) {
+    const dish = dishes.find(d => d.id === dishType);
     if (dish) {
       dishData = dish;
       break;
