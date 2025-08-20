@@ -1,0 +1,200 @@
+{
+  "japanese": [
+    {
+      "id": "sashimi_sushi",
+      "name": "刺身/寿司",
+      "cuisine_type": "japanese",
+      "compatibility": {
+        "sake_min_level": 0.0,
+        "sake_max_level": 5.0,
+        "acidity_min": 0.0,
+        "acidity_max": 2.0,
+        "alcohol_min": 10.0,
+        "alcohol_max": 16.0
+      },
+      "type_class1": "A",
+      "type_class2": "B",
+      "match_bonus": 2.5
+    },
+    {
+      "id": "nimono",
+      "name": "煮物",
+      "cuisine_type": "japanese",
+      "compatibility": {
+        "sake_min_level": -3.0,
+        "sake_max_level": 5.0,
+        "acidity_min": 0.0,
+        "acidity_max": 1.0,
+        "alcohol_min": 10.0,
+        "alcohol_max": 16.0
+      },
+      "type_class1": "B",
+      "type_class2": "C",
+      "match_bonus": 2.0
+    },
+    {
+      "id": "yakimono",
+      "name": "焼き物",
+      "cuisine_type": "japanese",
+      "compatibility": {
+        "sake_min_level": 0.0,
+        "sake_max_level": 15.0,
+        "acidity_min": 1.0,
+        "acidity_max": 2.0,
+        "alcohol_min": 15.0,
+        "alcohol_max": 20.0
+      },
+      "type_class1": "B",
+      "type_class2": "C",
+      "match_bonus": 2.0
+    },
+    {
+      "id": "agemono",
+      "name": "揚げ物",
+      "cuisine_type": "japanese",
+      "compatibility": {
+        "sake_min_level": 0.0,
+        "sake_max_level": 15.0,
+        "acidity_min": 1.0,
+        "acidity_max": 2.0,
+        "alcohol_min": 10.0,
+        "alcohol_max": 18.0
+      },
+      "type_class1": "A",
+      "type_class2": "B",
+      "match_bonus": 2.0
+    }
+  ],
+  "chinese": [
+    {
+      "id": "tenshin",
+      "name": "天津",
+      "cuisine_type": "chinese",
+      "compatibility": {
+        "sake_min_level": -5.0,
+        "sake_max_level": 5.0,
+        "acidity_min": 0.0,
+        "acidity_max": 2.0,
+        "alcohol_min": 10.0,
+        "alcohol_max": 15.0
+      },
+      "type_class1": "B",
+      "type_class2": "B",
+      "match_bonus": 1.5
+    },
+    {
+      "id": "strong_taste",
+      "name": "濃い味",
+      "cuisine_type": "chinese",
+      "compatibility": {
+        "sake_min_level": -5.0,
+        "sake_max_level": 5.0,
+        "acidity_min": 0.0,
+        "acidity_max": 3.0,
+        "alcohol_min": 10.0,
+        "alcohol_max": 18.0
+      },
+      "type_class1": "C",
+      "type_class2": "D",
+      "match_bonus": 1.5
+    },
+    {
+      "id": "light_taste",
+      "name": "薄味",
+      "cuisine_type": "chinese",
+      "compatibility": {
+        "sake_min_level": 0.0,
+        "sake_max_level": 10.0,
+        "acidity_min": 0.0,
+        "acidity_max": 1.0,
+        "alcohol_min": 10.0,
+        "alcohol_max": 15.0
+      },
+      "type_class1": "B",
+      "type_class2": "B",
+      "match_bonus": 1.5
+    },
+    {
+      "id": "chinese_fried",
+      "name": "揚げ物",
+      "cuisine_type": "chinese",
+      "compatibility": {
+        "sake_min_level": 2.0,
+        "sake_max_level": 15.0,
+        "acidity_min": 0.0,
+        "acidity_max": 1.0,
+        "alcohol_min": 10.0,
+        "alcohol_max": 16.0
+      },
+      "type_class1": "B",
+      "type_class2": "C",
+      "match_bonus": 1.5
+    }
+  ],
+  "western": [
+    {
+      "id": "carpaccio_oyster",
+      "name": "カルパッチョ/生牡蠣",
+      "cuisine_type": "western",
+      "compatibility": {
+        "sake_min_level": 2.0,
+        "sake_max_level": 15.0,
+        "acidity_min": 1.0,
+        "acidity_max": 3.0,
+        "alcohol_min": 12.0,
+        "alcohol_max": 18.0
+      },
+      "type_class1": "A",
+      "type_class2": "B",
+      "match_bonus": 2.3
+    },
+    {
+      "id": "meat_dish",
+      "name": "肉料理",
+      "cuisine_type": "western",
+      "compatibility": {
+        "sake_min_level": 0.0,
+        "sake_max_level": 18.0,
+        "acidity_min": 0.0,
+        "acidity_max": 2.0,
+        "alcohol_min": 12.0,
+        "alcohol_max": 16.0
+      },
+      "type_class1": "B",
+      "type_class2": "C",
+      "match_bonus": 1.8
+    },
+    {
+      "id": "fish_dish",
+      "name": "魚料理",
+      "cuisine_type": "western",
+      "compatibility": {
+        "sake_min_level": 2.0,
+        "sake_max_level": 18.0,
+        "acidity_min": 0.0,
+        "acidity_max": 2.0,
+        "alcohol_min": 15.0,
+        "alcohol_max": 16.0
+      },
+      "type_class1": "A",
+      "type_class2": "B",
+      "match_bonus": 1.8
+    },
+    {
+      "id": "gibier",
+      "name": "ジビエ",
+      "cuisine_type": "western",
+      "compatibility": {
+        "sake_min_level": -2.0,
+        "sake_max_level": 5.0,
+        "acidity_min": 1.0,
+        "acidity_max": 3.0,
+        "alcohol_min": 15.0,
+        "alcohol_max": 18.0
+      },
+      "type_class1": "C",
+      "type_class2": "D",
+      "match_bonus": 1.8
+    }
+  ]
+}

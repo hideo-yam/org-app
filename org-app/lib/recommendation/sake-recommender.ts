@@ -1,6 +1,7 @@
 import { DiagnosisResult } from '@/lib/types/diagnosis';
 import { SakeProfile, sakeData } from '@/lib/data/sake-data';
-import { calculateCuisineCompatibility, calculateSpecificDishCompatibility, getCuisineDescription } from '@/lib/data/cuisine-compatibility';
+import { calculateCuisineCompatibility, calculateSpecificDishCompatibility, getCuisineDescription, isKarakuchi, isAmakuchi } from '@/lib/data/cuisine-compatibility';
+import { dishCompatibilityData, getDishDisplayName } from '@/lib/data/dish-compatibility-matrix';
 
 export interface RecommendationScore {
   sake: SakeProfile;
@@ -14,22 +15,68 @@ export function recommendSakes(
   cuisineType?: string,
   specificDish?: string
 ): RecommendationScore[] {
-  const recommendations: RecommendationScore[] = sakeData.map(sake => {
+  // 第一段階: 個別料理マトリックス行データによる厳格な絞り込み
+  let candidateSakes = sakeData;
+  let matrixFilterApplied = false;
+  
+  if (specificDish) {
+    // 料理マトリックス行データの範囲内にある日本酒のみを厳格に抽出
+    const matrixFilteredCandidates = sakeData.filter(sake => {
+      return isWithinMatrixCompatibilityRange(specificDish, sake);
+    });
+    
+    // マトリックス範囲内の候補が十分にある場合のみ適用
+    if (matrixFilteredCandidates.length >= Math.max(count, 5)) {
+      candidateSakes = matrixFilteredCandidates;
+      matrixFilterApplied = true;
+      console.log(`第一段階（マトリックス）: ${specificDish}の範囲内で${sakeData.length}本中${candidateSakes.length}本に絞り込み`);
+    } else {
+      // 候補が少ない場合はマトリックス範囲を緩和
+      const relaxedMatrixCandidates = sakeData.filter(sake => {
+        return isWithinMatrixCompatibilityRange(specificDish, sake, 1.2); // 20%範囲拡張
+      });
+      
+      if (relaxedMatrixCandidates.length >= count) {
+        candidateSakes = relaxedMatrixCandidates;
+        matrixFilterApplied = true;
+        console.log(`第一段階（マトリックス緩和）: ${specificDish}で${sakeData.length}本中${candidateSakes.length}本に絞り込み`);
+      }
+    }
+  } else if (cuisineType && cuisineType !== 'various') {
+    // 料理カテゴリのマトリックス範囲による絞り込み
+    const categoryMatrixFiltered = sakeData.filter(sake => {
+      return isWithinCuisineMatrixRange(cuisineType, sake);
+    });
+    
+    if (categoryMatrixFiltered.length >= Math.max(count * 2, 10)) {
+      candidateSakes = categoryMatrixFiltered;
+      matrixFilterApplied = true;
+      console.log(`第一段階（カテゴリマトリックス）: ${cuisineType}料理で${sakeData.length}本中${candidateSakes.length}本に絞り込み`);
+    }
+  }
+  
+  // 第二段階: 日本酒度・香味による重み付け計算
+  const recommendations: RecommendationScore[] = candidateSakes.map(sake => {
+    // 基本診断との適合度を計算
     const baseScore = calculateCompatibilityScore(sake, diagnosisResult);
     
-    // 料理相性スコアを追加
-    let cuisineScore = 0;
+    // 日本酒度・香味に基づく重み付けスコア
+    const sakeCharacteristicScore = calculateSakeCharacteristicScore(sake, diagnosisResult);
+    
+    // 料理相性ボーナス（従来のスコアを維持）
+    let cuisineBonus = 0;
     if (specificDish) {
-      // 具体的な料理が選択されている場合はより精密なスコア計算
-      cuisineScore = calculateSpecificDishCompatibility(specificDish, sake);
+      cuisineBonus = calculateSpecificDishCompatibility(specificDish, sake) * 0.3;
     } else if (cuisineType && cuisineType !== 'various') {
-      cuisineScore = calculateCuisineCompatibility(cuisineType, sake);
+      cuisineBonus = calculateCuisineCompatibility(cuisineType, sake) * 0.2;
     }
     
-    // 基本スコア（50%）+ 料理相性スコア（50%）- 具体的な料理の場合はより重要視
-    const cuisineWeight = specificDish ? 0.5 : 0.4;
-    const baseWeight = specificDish ? 0.5 : 0.6;
-    const finalScore = baseScore * baseWeight + cuisineScore * cuisineWeight;
+    // 最終スコア計算: 日本酒度・香味を重視した重み付け
+    // マトリックス絞り込みが適用された場合は、特性重視の配分
+    const characteristicWeight = matrixFilterApplied ? 0.7 : 0.5;
+    const baseWeight = matrixFilterApplied ? 0.3 : 0.5;
+    
+    const finalScore = (baseScore * baseWeight + sakeCharacteristicScore * characteristicWeight) + cuisineBonus;
     
     const matchReasons = generateMatchReasons(sake, diagnosisResult, cuisineType, specificDish);
     
@@ -44,6 +91,99 @@ export function recommendSakes(
   return recommendations
     .sort((a, b) => b.score - a.score)
     .slice(0, count);
+}
+
+// 料理マトリックスの範囲内にあるかチェック（個別料理用）
+function isWithinMatrixCompatibilityRange(
+  dishType: string,
+  sake: SakeProfile,
+  tolerance: number = 1.0
+): boolean {
+  const compatibilityRange = getSpecificDishCompatibilityRange(dishType);
+  if (!compatibilityRange) return true; // 不明な料理は通す
+  
+  // 日本酒度の推定（甘辛度から）
+  const estimatedSakeDegree = (6 - sake.sweetness) * 3;
+  const sakeInRange = estimatedSakeDegree >= compatibilityRange.sakeMinLevel / tolerance && 
+                     estimatedSakeDegree <= compatibilityRange.sakeMaxLevel * tolerance;
+  
+  // 酸度の範囲チェック
+  const acidityInRange = sake.acidity >= compatibilityRange.acidityMin / tolerance &&
+                        sake.acidity <= compatibilityRange.acidityMax * tolerance;
+  
+  // アルコール度数の範囲チェック
+  const alcoholInRange = sake.alcoholContent >= compatibilityRange.alcoholMin / tolerance &&
+                        sake.alcoholContent <= compatibilityRange.alcoholMax * tolerance;
+  
+  // すべての条件を満たす必要がある
+  return sakeInRange && acidityInRange && alcoholInRange;
+}
+
+// 料理カテゴリマトリックスの範囲内にあるかチェック
+function isWithinCuisineMatrixRange(cuisineType: string, sake: SakeProfile): boolean {
+  const compatibilityRange = getCuisineCompatibilityRange(cuisineType);
+  if (!compatibilityRange) return true;
+  
+  const estimatedSakeDegree = (6 - sake.sweetness) * 3;
+  const sakeInRange = estimatedSakeDegree >= compatibilityRange.sakeMinLevel && 
+                     estimatedSakeDegree <= compatibilityRange.sakeMaxLevel;
+  
+  const acidityInRange = sake.acidity >= compatibilityRange.acidityMin &&
+                        sake.acidity <= compatibilityRange.acidityMax;
+  
+  const alcoholInRange = sake.alcoholContent >= compatibilityRange.alcoholMin &&
+                        sake.alcoholContent <= compatibilityRange.alcoholMax;
+  
+  return sakeInRange && acidityInRange && alcoholInRange;
+}
+
+// 日本酒度・香味特性による重み付けスコア計算
+function calculateSakeCharacteristicScore(
+  sake: SakeProfile,
+  diagnosis: DiagnosisResult
+): number {
+  // 日本酒度（甘辛度）の適合度 - 最重要
+  const sweetnessMatch = 10 - Math.abs(sake.sweetness - diagnosis.sweetness);
+  const sweetnessScore = Math.max(0, sweetnessMatch) * 0.4; // 40%の重み
+  
+  // 香味（香り＋味わい）の適合度
+  const aromaMatch = 10 - Math.abs(sake.aroma - diagnosis.aroma);
+  const aromaScore = Math.max(0, aromaMatch) * 0.3; // 30%の重み
+  
+  // 濃淡度（コク）の適合度
+  const richnessMatch = 10 - Math.abs(sake.richness - diagnosis.richness);
+  const richnessScore = Math.max(0, richnessMatch) * 0.2; // 20%の重み
+  
+  // 酸味の適合度
+  const acidityMatch = 10 - Math.abs(sake.acidity - diagnosis.acidity);
+  const acidityScore = Math.max(0, acidityMatch) * 0.1; // 10%の重み
+  
+  return sweetnessScore + aromaScore + richnessScore + acidityScore;
+}
+
+// ヘルパー関数群
+function getSpecificDishCompatibilityRange(dishType: string) {
+  // マトリックスデータから該当料理を検索
+  const dishData = dishCompatibilityData.find(dish => dish.id === dishType);
+  if (!dishData) return null;
+  
+  return {
+    sakeMinLevel: dishData.compatibility.sakeMinLevel,
+    sakeMaxLevel: dishData.compatibility.sakeMaxLevel,
+    acidityMin: dishData.compatibility.acidityMin,
+    acidityMax: dishData.compatibility.acidityMax,
+    alcoholMin: dishData.compatibility.alcoholMin,
+    alcoholMax: dishData.compatibility.alcoholMax
+  };
+}
+
+function getCuisineCompatibilityRange(cuisineType: string) {
+  const cuisineRanges = {
+    'japanese': { sakeMinLevel: -1, sakeMaxLevel: 10, acidityMin: 0.5, acidityMax: 1.75, alcoholMin: 12.5, alcoholMax: 17.5 },
+    'chinese': { sakeMinLevel: -2, sakeMaxLevel: 8.75, acidityMin: 0, acidityMax: 1.75, alcoholMin: 10, alcoholMax: 16 },
+    'western': { sakeMinLevel: 0.5, sakeMaxLevel: 14, acidityMin: 0.5, acidityMax: 2.5, alcoholMin: 13.5, alcoholMax: 17 }
+  };
+  return cuisineRanges[cuisineType as keyof typeof cuisineRanges];
 }
 
 function calculateCompatibilityScore(
@@ -88,13 +228,17 @@ function generateMatchReasons(
 ): string[] {
   const reasons: string[] = [];
 
-  // 甘辛度のマッチング
+  // 甘辛度のマッチング（正しい日本酒度・酸度基準を適用）
+  // 甘辛度から日本酒度を逆算し、酸度と組み合わせて判定
+  const estimatedSakeDegree = (6 - sake.sweetness) * 3;
+  const sakeAcidity = sake.acidity / 3; // 1-10スケールから実際の酸度に戻す
+  
   const sweetnessGap = Math.abs(sake.sweetness - diagnosis.sweetness);
   if (sweetnessGap <= 1.5) {
-    if (diagnosis.sweetness >= 7) {
-      reasons.push('甘口がお好みにぴったり');
-    } else if (diagnosis.sweetness <= 4) {
-      reasons.push('辛口がお好みにぴったり');
+    if (isKarakuchi(estimatedSakeDegree, sakeAcidity)) {
+      reasons.push('辛口がお好みにぴったり（日本酒度・酸度基準）');
+    } else if (isAmakuchi(estimatedSakeDegree)) {
+      reasons.push('甘口がお好みにぴったり（日本酒度・酸度基準）');
     } else {
       reasons.push('バランスの良い甘辛度');
     }
@@ -139,22 +283,8 @@ function generateMatchReasons(
     // 具体的な料理が選択されている場合
     const dishScore = calculateSpecificDishCompatibility(specificDish, sake);
     if (dishScore > 5) {
-      const dishNames = {
-        'sashimi_sushi': '刺身・寿司',
-        'nimono': '煮物',
-        'yakimono': '焼き物',
-        'agemono': '揚げ物',
-        'tenshin': '天津料理',
-        'strong_taste': '濃い味の中華',
-        'light_taste': '薄味の中華',
-        'chinese_fried': '中華揚げ物',
-        'carpaccio_oyster': 'カルパッチョ・生牡蠣',
-        'meat_dish': '肉料理',
-        'fish_dish': '魚料理',
-        'gibier': 'ジビエ料理'
-      };
-      const dishName = dishNames[specificDish as keyof typeof dishNames];
-      if (dishName) {
+      const dishName = getDishDisplayName(specificDish);
+      if (dishName && dishName !== specificDish) {
         reasons.push(`${dishName}との相性抜群`);
       }
     }
@@ -208,6 +338,7 @@ export function getSakeTypeCategoryDescription(category: SakeProfile['sakeTypeCa
 }
 
 export function getPreferenceDescription(diagnosis: DiagnosisResult): string {
+  // 正しい甘辛度判定基準を適用
   const sweetness = diagnosis.sweetness >= 7 ? '甘口' : 
                    diagnosis.sweetness <= 4 ? '辛口' : '中口';
   const richness = diagnosis.richness >= 7 ? '濃醇' : 

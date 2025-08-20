@@ -1,4 +1,5 @@
 // エクセルファイルの料理シートから抽出した相性データ
+import { dishCompatibilityData } from './dish-compatibility-matrix';
 
 export interface CuisineCompatibility {
   cuisineType: 'japanese' | 'chinese' | 'western';
@@ -55,63 +56,39 @@ export const cuisineCompatibilityData: CuisineCompatibility[] = [
   }
 ];
 
-// 日本酒度から甘辛度を計算するヘルパー関数
-export function sakeDegreeToSweetnessScale(sakeDegree: number): number {
-  // 日本酒度が低い（マイナス）ほど甘口、高い（プラス）ほど辛口
-  // -15～+15の範囲を1～10にマッピング
-  return Math.max(1, Math.min(10, 6 - (sakeDegree / 3)));
+// 正しい辛口判定：日本酒度+1以上 AND 酸度1.1以上
+export function isKarakuchi(sakeDegree: number, acidity: number): boolean {
+  return sakeDegree >= 1.0 && acidity >= 1.1;
 }
 
-// 料理の相性データ型定義
-interface DishCompatibility {
-  id: string;
-  compatibility: {
-    sakeMinLevel: number;
-    sakeMaxLevel: number;
-    acidityMin: number;
-    acidityMax: number;
-    alcoholMin: number;
-    alcoholMax: number;
-  };
+// 正しい甘口判定：日本酒度-1以下
+export function isAmakuchi(sakeDegree: number): boolean {
+  return sakeDegree <= -1.0;
 }
+
+// 日本酒度と酸度を考慮した甘辛度を計算するヘルパー関数
+export function sakeDegreeToSweetnessScale(sakeDegree: number, acidity: number = 1.0): number {
+  // 正しい辛口・甘口判定を適用
+  if (isKarakuchi(sakeDegree, acidity)) {
+    // 辛口：1-4の範囲（日本酒度+1以上 AND 酸度1.1以上）
+    return Math.max(1, Math.min(4, 3 - (sakeDegree / 5)));
+  } else if (isAmakuchi(sakeDegree)) {
+    // 甘口：7-10の範囲（日本酒度-1以下）
+    return Math.max(7, Math.min(10, 8.5 + (Math.abs(sakeDegree) / 4)));
+  } else {
+    // 中口：4-7の範囲（辛口にも甘口にも当てはまらない場合）
+    return Math.max(4, Math.min(7, 5.5 - (sakeDegree / 6)));
+  }
+}
+
 
 // 具体的な料理種類に基づく日本酒の相性スコアを計算
 export function calculateSpecificDishCompatibility(
   dishType: string,
   sake: { sweetness: number; acidity: number; alcoholContent: number }
 ): number {
-  // 全ての料理種類データから該当するものを検索
-  let dishData: DishCompatibility | null = null;
-  
-  const cuisineData = {
-    japanese: [
-      { id: 'sashimi_sushi', compatibility: { sakeMinLevel: 0, sakeMaxLevel: 5, acidityMin: 0, acidityMax: 2, alcoholMin: 10, alcoholMax: 16 }},
-      { id: 'nimono', compatibility: { sakeMinLevel: -3, sakeMaxLevel: 5, acidityMin: 0, acidityMax: 1, alcoholMin: 10, alcoholMax: 16 }},
-      { id: 'yakimono', compatibility: { sakeMinLevel: 0, sakeMaxLevel: 15, acidityMin: 1, acidityMax: 2, alcoholMin: 15, alcoholMax: 20 }},
-      { id: 'agemono', compatibility: { sakeMinLevel: 0, sakeMaxLevel: 15, acidityMin: 1, acidityMax: 2, alcoholMin: 10, alcoholMax: 18 }}
-    ],
-    chinese: [
-      { id: 'tenshin', compatibility: { sakeMinLevel: -5, sakeMaxLevel: 5, acidityMin: 0, acidityMax: 2, alcoholMin: 10, alcoholMax: 15 }},
-      { id: 'strong_taste', compatibility: { sakeMinLevel: -5, sakeMaxLevel: 5, acidityMin: 0, acidityMax: 3, alcoholMin: 10, alcoholMax: 18 }},
-      { id: 'light_taste', compatibility: { sakeMinLevel: 0, sakeMaxLevel: 10, acidityMin: 0, acidityMax: 1, alcoholMin: 10, alcoholMax: 15 }},
-      { id: 'chinese_fried', compatibility: { sakeMinLevel: 2, sakeMaxLevel: 15, acidityMin: 0, acidityMax: 1, alcoholMin: 10, alcoholMax: 16 }}
-    ],
-    western: [
-      { id: 'carpaccio_oyster', compatibility: { sakeMinLevel: 2, sakeMaxLevel: 15, acidityMin: 1, acidityMax: 3, alcoholMin: 12, alcoholMax: 18 }},
-      { id: 'meat_dish', compatibility: { sakeMinLevel: 0, sakeMaxLevel: 18, acidityMin: 0, acidityMax: 2, alcoholMin: 12, alcoholMax: 16 }},
-      { id: 'fish_dish', compatibility: { sakeMinLevel: 2, sakeMaxLevel: 18, acidityMin: 0, acidityMax: 2, alcoholMin: 15, alcoholMax: 16 }},
-      { id: 'gibier', compatibility: { sakeMinLevel: -2, sakeMaxLevel: 5, acidityMin: 1, acidityMax: 3, alcoholMin: 15, alcoholMax: 18 }}
-    ]
-  };
-  
-  for (const dishes of Object.values(cuisineData)) {
-    const dish = dishes.find(d => d.id === dishType);
-    if (dish) {
-      dishData = dish;
-      break;
-    }
-  }
-  
+  // マトリックスデータから該当料理を検索
+  const dishData = dishCompatibilityData.find(dish => dish.id === dishType);
   if (!dishData) return 0;
   
   const compatibility = dishData.compatibility;
@@ -158,7 +135,9 @@ export function calculateSpecificDishCompatibility(
   }
   factors++;
   
-  return factors > 0 ? score / factors : 0;
+  // マトリックスデータのマッチボーナスを適用
+  const baseScore = factors > 0 ? score / factors : 0;
+  return baseScore * (dishData.matchBonus / 2.0); // ボーナススケール調整
 }
 
 // 料理タイプに基づく日本酒の相性スコアを計算

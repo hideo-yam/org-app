@@ -27,9 +27,18 @@ def convert_excel_to_sake_data(excel_file_path, sheet_name="お酒データ"):
             price_range = str(row[7]) if pd.notna(row[7]) else 'M'  # 価格帯
             price = int(row[8]) if pd.notna(row[8]) else 3000  # 価格
             
-            # 日本酒度から甘辛度を計算（-15～+15の範囲を1～10にマッピング）
-            # 日本酒度が低い（マイナス）ほど甘口、高い（プラス）ほど辛口
-            sweetness = max(1, min(10, 6 - (nihonshu_do / 3)))
+            # 正しい辛口・甘口判定を適用した甘辛度計算
+            # 辛口：日本酒度+1以上 AND 酸度1.1以上
+            # 甘口：日本酒度-1以下
+            if nihonshu_do >= 1.0 and acidity >= 1.1:
+                # 辛口：1-4の範囲
+                sweetness = max(1, min(4, 3 - (nihonshu_do / 5)))
+            elif nihonshu_do <= -1.0:
+                # 甘口：7-10の範囲
+                sweetness = max(7, min(10, 8.5 + (abs(nihonshu_do) / 4)))
+            else:
+                # 中口：4-7の範囲（辛口にも甘口にも当てはまらない場合）
+                sweetness = max(4, min(7, 5.5 - (nihonshu_do / 6)))
             
             # 酸度からさっぱり度を計算
             acidity_score = max(1, min(10, acidity * 3))
@@ -79,11 +88,11 @@ def convert_excel_to_sake_data(excel_file_path, sheet_name="お酒データ"):
                 "tags": []
             }
             
-            # タグの設定
-            if sweetness > 7:
-                sake_item["tags"].append("甘口")
-            elif sweetness < 4:
+            # タグの設定（正しい辛口・甘口判定を適用）
+            if nihonshu_do >= 1.0 and acidity >= 1.1:
                 sake_item["tags"].append("辛口")
+            elif nihonshu_do <= -1.0:
+                sake_item["tags"].append("甘口")
             
             if price < 1500:
                 sake_item["tags"].append("コスパ良")
