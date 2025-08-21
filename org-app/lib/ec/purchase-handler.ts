@@ -74,6 +74,7 @@ export class PurchaseHandler {
         'rakuten.co.jp',
         'amazon.co.jp',
         'yahoo-shopping.jp',
+        'issendo.jp',
         // 他の信頼できるECサイトドメイン
       ];
       

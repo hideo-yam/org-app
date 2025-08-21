@@ -1,5 +1,7 @@
 // エクセルファイルの料理シートから抽出した相性データ
 import { dishCompatibilityData } from './dish-compatibility-matrix';
+import { judgeSweetnessByMatrix, isKarakuchi as isKarakuchiMatrix, isAmakuchi as isAmakuchiMatrix } from '@/lib/utils/sake-sweetness-calculator';
+import { convertSweetnessToNihonshuDegree } from '@/lib/data/sake-data';
 
 export interface CuisineCompatibility {
   cuisineType: 'japanese' | 'chinese' | 'western';
@@ -56,36 +58,41 @@ export const cuisineCompatibilityData: CuisineCompatibility[] = [
   }
 ];
 
-// 正しい辛口判定：日本酒度+1以上 AND 酸度1.1以上
+// 正確な日本酒度・酸度マトリックス判定を使用
 export function isKarakuchi(sakeDegree: number, acidity: number): boolean {
-  return sakeDegree >= 1.0 && acidity >= 1.1;
+  return isKarakuchiMatrix(sakeDegree, acidity);
 }
 
-// 正しい甘口判定：日本酒度-1以下
-export function isAmakuchi(sakeDegree: number): boolean {
-  return sakeDegree <= -1.0;
+export function isAmakuchi(sakeDegree: number, acidity?: number): boolean {
+  return isAmakuchiMatrix(sakeDegree, acidity);
 }
 
-// 日本酒度と酸度を考慮した甘辛度を計算するヘルパー関数
-export function sakeDegreeToSweetnessScale(sakeDegree: number, acidity: number = 1.0): number {
-  // 正しい辛口・甘口判定を適用
-  if (isKarakuchi(sakeDegree, acidity)) {
-    // 辛口：1-4の範囲（日本酒度+1以上 AND 酸度1.1以上）
-    return Math.max(1, Math.min(4, 3 - (sakeDegree / 5)));
-  } else if (isAmakuchi(sakeDegree)) {
-    // 甘口：7-10の範囲（日本酒度-1以下）
-    return Math.max(7, Math.min(10, 8.5 + (Math.abs(sakeDegree) / 4)));
+// 日本酒度と酸度を考慮した甘辛度を計算するヘルパー関数（新しいマトリックス使用）
+export function sakeDegreeToSweetnessScale(sakeDegree: number, acidity: number = 1.4): number {
+  const judgment = judgeSweetnessByMatrix(sakeDegree, acidity);
+  
+  // カテゴリベースで甘辛度スケールを返す
+  if (judgment.category === 'karakuchi') {
+    // 辛口：1-4の範囲
+    if (judgment.level.includes('大辛口') || judgment.level.includes('超辛口')) return 1.5;
+    if (judgment.level.includes('辛口')) return 2.5;
+    return 3.5; // やや辛口
+  } else if (judgment.category === 'amakuchi') {
+    // 甘口：7-10の範囲
+    if (judgment.level.includes('大甘口')) return 9.5;
+    if (judgment.level.includes('甘口')) return 8.0;
+    return 7.0; // やや甘口
   } else {
-    // 中口：4-7の範囲（辛口にも甘口にも当てはまらない場合）
-    return Math.max(4, Math.min(7, 5.5 - (sakeDegree / 6)));
+    // 中口：5の周辺
+    return 5.0;
   }
 }
 
 
-// 具体的な料理種類に基づく日本酒の相性スコアを計算
+// 具体的な料理種類に基づく日本酒の相性スコアを計算（新しいマトリックスシステム使用）
 export function calculateSpecificDishCompatibility(
   dishType: string,
-  sake: { sweetness: number; acidity: number; alcoholContent: number }
+  sake: { sweetness: number; acidity: number; alcoholContent: number; nihonshuDegree?: number; realAcidity?: number }
 ): number {
   // マトリックスデータから該当料理を検索
   const dishData = dishCompatibilityData.find(dish => dish.id === dishType);
@@ -95,28 +102,31 @@ export function calculateSpecificDishCompatibility(
   let score = 0;
   let factors = 0;
   
-  // 日本酒度の相性をチェック（甘辛度から逆算）
-  const estimatedSakeDegree = (6 - sake.sweetness) * 3;
-  if (estimatedSakeDegree >= compatibility.sakeMinLevel && 
-      estimatedSakeDegree <= compatibility.sakeMaxLevel) {
+  // 正確な日本酒度を取得
+  const nihonshuDegree = sake.nihonshuDegree ?? convertSweetnessToNihonshuDegree(sake.sweetness);
+  const realAcidity = sake.realAcidity ?? sake.acidity;
+  
+  // 日本酒度の相性をチェック
+  if (nihonshuDegree >= compatibility.sakeMinLevel && 
+      nihonshuDegree <= compatibility.sakeMaxLevel) {
     score += 4; // より高い重み
   } else {
     const distance = Math.min(
-      Math.abs(estimatedSakeDegree - compatibility.sakeMinLevel),
-      Math.abs(estimatedSakeDegree - compatibility.sakeMaxLevel)
+      Math.abs(nihonshuDegree - compatibility.sakeMinLevel),
+      Math.abs(nihonshuDegree - compatibility.sakeMaxLevel)
     );
     score += Math.max(0, 4 - distance / 2);
   }
   factors++;
   
-  // 酸度の相性をチェック
-  if (sake.acidity >= compatibility.acidityMin && 
-      sake.acidity <= compatibility.acidityMax) {
+  // 酸度の相性をチェック（実際の酸度値を使用）
+  if (realAcidity >= compatibility.acidityMin && 
+      realAcidity <= compatibility.acidityMax) {
     score += 3;
   } else {
     const distance = Math.min(
-      Math.abs(sake.acidity - compatibility.acidityMin),
-      Math.abs(sake.acidity - compatibility.acidityMax)
+      Math.abs(realAcidity - compatibility.acidityMin),
+      Math.abs(realAcidity - compatibility.acidityMax)
     );
     score += Math.max(0, 3 - distance);
   }
@@ -140,10 +150,10 @@ export function calculateSpecificDishCompatibility(
   return baseScore * (dishData.matchBonus / 2.0); // ボーナススケール調整
 }
 
-// 料理タイプに基づく日本酒の相性スコアを計算
+// 料理タイプに基づく日本酒の相性スコアを計算（新しいマトリックスシステム使用）
 export function calculateCuisineCompatibility(
   cuisineType: string,
-  sake: { sweetness: number; acidity: number; alcoholContent: number }
+  sake: { sweetness: number; acidity: number; alcoholContent: number; nihonshuDegree?: number; realAcidity?: number }
 ): number {
   const compatibility = cuisineCompatibilityData.find(c => c.cuisineType === cuisineType);
   if (!compatibility) return 0;
@@ -151,29 +161,32 @@ export function calculateCuisineCompatibility(
   let score = 0;
   let factors = 0;
 
-  // 日本酒度の相性をチェック（甘辛度から逆算）
-  const estimatedSakeDegree = (6 - sake.sweetness) * 3; // 甘辛度から日本酒度を推定
-  if (estimatedSakeDegree >= compatibility.sakeMinLevel && 
-      estimatedSakeDegree <= compatibility.sakeMaxLevel) {
+  // 正確な日本酒度を取得
+  const nihonshuDegree = sake.nihonshuDegree ?? convertSweetnessToNihonshuDegree(sake.sweetness);
+  const realAcidity = sake.realAcidity ?? sake.acidity;
+
+  // 日本酒度の相性をチェック
+  if (nihonshuDegree >= compatibility.sakeMinLevel && 
+      nihonshuDegree <= compatibility.sakeMaxLevel) {
     score += 3;
   } else {
     // 範囲外でも近ければ部分点
     const distance = Math.min(
-      Math.abs(estimatedSakeDegree - compatibility.sakeMinLevel),
-      Math.abs(estimatedSakeDegree - compatibility.sakeMaxLevel)
+      Math.abs(nihonshuDegree - compatibility.sakeMinLevel),
+      Math.abs(nihonshuDegree - compatibility.sakeMaxLevel)
     );
     score += Math.max(0, 3 - distance / 2);
   }
   factors++;
 
-  // 酸度の相性をチェック
-  if (sake.acidity >= compatibility.acidityMin && 
-      sake.acidity <= compatibility.acidityMax) {
+  // 酸度の相性をチェック（実際の酸度値を使用）
+  if (realAcidity >= compatibility.acidityMin && 
+      realAcidity <= compatibility.acidityMax) {
     score += 2;
   } else {
     const distance = Math.min(
-      Math.abs(sake.acidity - compatibility.acidityMin),
-      Math.abs(sake.acidity - compatibility.acidityMax)
+      Math.abs(realAcidity - compatibility.acidityMin),
+      Math.abs(realAcidity - compatibility.acidityMax)
     );
     score += Math.max(0, 2 - distance);
   }
