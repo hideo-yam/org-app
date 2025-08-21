@@ -137,25 +137,25 @@ export const diagnosisQuestions: DiagnosisQuestion[] = [
         id: 'japanese',
         text: '和食',
         value: 'japanese',
-        weight: { sweetness: 5, richness: 6, acidity: 4, aroma: 6 }
+        weight: { sweetness: 0, richness: 1, acidity: -1, aroma: 1 }
       },
       {
         id: 'chinese',
         text: '中華料理',
         value: 'chinese',
-        weight: { sweetness: 4, richness: 7, acidity: 5, aroma: 5 }
+        weight: { sweetness: 0, richness: 2, acidity: 0, aroma: 0 }
       },
       {
         id: 'western',
         text: '洋食',
         value: 'western',
-        weight: { sweetness: 6, richness: 5, acidity: 6, aroma: 7 }
+        weight: { sweetness: 0, richness: 0, acidity: 1, aroma: 2 }
       },
       {
         id: 'various',
         text: '色々な料理と合わせたい',
         value: 'various',
-        weight: { sweetness: 5, richness: 5, acidity: 5, aroma: 5 }
+        weight: { sweetness: 0, richness: 0, acidity: 0, aroma: 0 }
       }
     ]
   },
@@ -175,13 +175,13 @@ export const diagnosisQuestions: DiagnosisQuestion[] = [
         id: 'amakuchi',
         text: '甘口',
         value: 'amakuchi',
-        weight: { sweetness: 2, richness: 0, acidity: 0, aroma: 0 }
+        weight: { sweetness: 2.5, richness: 0, acidity: 0, aroma: 0 }
       },
       {
         id: 'karakuchi',
         text: '辛口',
         value: 'karakuchi',
-        weight: { sweetness: -2, richness: 0, acidity: 0, aroma: 0 }
+        weight: { sweetness: -2.5, richness: 0, acidity: 0, aroma: 0 }
       },
       {
         id: 'either',

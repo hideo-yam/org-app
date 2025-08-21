@@ -67,27 +67,45 @@ export function recommendSakes(
     // 日本酒度・香味に基づく重み付けスコア
     const sakeCharacteristicScore = calculateSakeCharacteristicScore(sake, diagnosisResult);
     
+    // マトリックス適合度スコア（最優先）
+    let matrixScore = 0;
+    if (specificDish) {
+      const nihonshuDegree = sake.nihonshuDegree ?? convertSweetnessToNihonshuDegree(sake.sweetness);
+      const realAcidity = sake.realAcidity ?? sake.acidity;
+      const alcoholContent = sake.alcoholContent;
+      
+      const compatibilityRange = getSpecificDishCompatibilityRange(specificDish);
+      if (compatibilityRange) {
+        const sakeInRange = nihonshuDegree >= compatibilityRange.sakeMinLevel && 
+                           nihonshuDegree <= compatibilityRange.sakeMaxLevel;
+        const acidityInRange = realAcidity >= compatibilityRange.acidityMin &&
+                              realAcidity <= compatibilityRange.acidityMax;
+        const alcoholInRange = alcoholContent >= compatibilityRange.alcoholMin &&
+                              alcoholContent <= compatibilityRange.alcoholMax;
+        const typeClassMatch = isMatchingTypeClass(specificDish, sake);
+        
+        matrixScore = calculateMatrixCompatibilityScore(
+          specificDish, sake, sakeInRange, acidityInRange, alcoholInRange, typeClassMatch
+        );
+      }
+    }
+    
     // 料理相性ボーナス（従来のスコアを維持）
     let cuisineBonus = 0;
     if (specificDish) {
-      cuisineBonus = calculateSpecificDishCompatibility(specificDish, sake) * 0.3;
+      cuisineBonus = calculateSpecificDishCompatibility(specificDish, sake) * 0.2;
     } else if (cuisineType && cuisineType !== 'various') {
-      cuisineBonus = calculateCuisineCompatibility(cuisineType, sake) * 0.2;
+      cuisineBonus = calculateCuisineCompatibility(cuisineType, sake) * 0.1;
     }
     
-    // 甘辛度ボーナス（q3の回答に基づく追加ボーナス）
-    let sweetnessBonus = 0;
-    const q3Answer = findAnswerForQuestion(diagnosisResult, 'q3');
-    if (q3Answer) {
-      sweetnessBonus = calculateSweetnessBonus(sake, q3Answer);
-    }
+    // ユーザー好み適合度（最終段階）
+    const userPreferenceScore = calculateUserPreferenceScore(sake, diagnosisResult);
     
-    // 最終スコア計算: 日本酒度・香味を重視した重み付け
-    // マトリックス絞り込みが適用された場合は、特性重視の配分
-    const characteristicWeight = matrixFilterApplied ? 0.7 : 0.5;
-    const baseWeight = matrixFilterApplied ? 0.3 : 0.5;
-    
-    const finalScore = (baseScore * baseWeight + sakeCharacteristicScore * characteristicWeight) + cuisineBonus + sweetnessBonus;
+    // 最終スコア計算: 段階的重みづけ
+    // 1. マトリックス適合度（最重要）
+    // 2. ユーザー好み適合度（次重要）
+    // 3. 従来の料理相性ボーナス（補助的）
+    const finalScore = matrixScore * 2.0 + userPreferenceScore * 1.0 + cuisineBonus;
     
     const matchReasons = generateMatchReasons(sake, diagnosisResult, cuisineType, specificDish);
     
@@ -140,8 +158,14 @@ function isWithinMatrixCompatibilityRange(
   console.log(`      酸度: ${acidityInRange ? '✅' : '❌'} (${realAcidity} in ${compatibilityRange.acidityMin}~${compatibilityRange.acidityMax})`);
   console.log(`      アルコール: ${alcoholInRange ? '✅' : '❌'} (${alcoholContent} in ${compatibilityRange.alcoholMin}~${compatibilityRange.alcoholMax})`);
   
-  // マトリックス基準: すべての条件を満たす必要がある
-  return sakeInRange && acidityInRange && alcoholInRange;
+  // 4タイプ分類による絞り込み追加
+  const typeClassMatch = isMatchingTypeClass(dishType, sake);
+  console.log(`      4タイプ分類: ${typeClassMatch ? '✅' : '❌'} (${sake.sakeTypeCategory || '未分類'})`);
+  
+  // 重みづけによる段階的絞り込み
+  return calculateMatrixCompatibilityScore(
+    dishType, sake, sakeInRange, acidityInRange, alcoholInRange, typeClassMatch
+  ) > 0;
 }
 
 // 料理カテゴリマトリックスの範囲内にあるかチェック（マトリックス完全準拠）
@@ -176,21 +200,36 @@ function calculateSakeCharacteristicScore(
   sake: SakeProfile,
   diagnosis: DiagnosisResult
 ): number {
-  // 日本酒度（甘辛度）の適合度 - 最重要
+  // ユーザーが香りを重視している場合（7以上）の重み調整
+  const isAromaImportant = diagnosis.aroma >= 7;
+  
+  // 動的重み設定
+  const weights = isAromaImportant ? {
+    sweetness: 0.35, // 甘辛度
+    aroma: 0.4,      // 香り（ユーザー重視時）
+    richness: 0.15,  // コク
+    acidity: 0.1     // 酸味
+  } : {
+    sweetness: 0.4,  // 甘辛度（通常）
+    aroma: 0.3,      // 香り（通常）
+    richness: 0.2,   // コク
+    acidity: 0.1     // 酸味
+  };
+  
+  // 各適合度の計算
   const sweetnessMatch = 10 - Math.abs(sake.sweetness - diagnosis.sweetness);
-  const sweetnessScore = Math.max(0, sweetnessMatch) * 0.4; // 40%の重み
+  const sweetnessScore = Math.max(0, sweetnessMatch) * weights.sweetness;
   
-  // 香味（香り＋味わい）の適合度
   const aromaMatch = 10 - Math.abs(sake.aroma - diagnosis.aroma);
-  const aromaScore = Math.max(0, aromaMatch) * 0.3; // 30%の重み
+  const aromaScore = Math.max(0, aromaMatch) * weights.aroma;
   
-  // 濃淡度（コク）の適合度
   const richnessMatch = 10 - Math.abs(sake.richness - diagnosis.richness);
-  const richnessScore = Math.max(0, richnessMatch) * 0.2; // 20%の重み
+  const richnessScore = Math.max(0, richnessMatch) * weights.richness;
   
-  // 酸味の適合度
   const acidityMatch = 10 - Math.abs(sake.acidity - diagnosis.acidity);
-  const acidityScore = Math.max(0, acidityMatch) * 0.1; // 10%の重み
+  const acidityScore = Math.max(0, acidityMatch) * weights.acidity;
+  
+  console.log(`    🎯 重み設定: 香り重視=${isAromaImportant} (香り${weights.aroma*100}%, 甘辛${weights.sweetness*100}%)`);
   
   return sweetnessScore + aromaScore + richnessScore + acidityScore;
 }
@@ -224,12 +263,19 @@ function calculateCompatibilityScore(
   sake: SakeProfile,
   diagnosis: DiagnosisResult
 ): number {
-  // 各要素の重要度重み
-  const weights = {
-    sweetness: 0.3,
-    richness: 0.25,
-    aroma: 0.25,
-    acidity: 0.2
+  // ユーザーが香りを重視している場合の動的重み調整
+  const isAromaImportant = diagnosis.aroma >= 7;
+  
+  const weights = isAromaImportant ? {
+    sweetness: 0.25,  // 甘辛度
+    aroma: 0.35,      // 香り（ユーザー重視時）
+    richness: 0.25,   // コク
+    acidity: 0.15     // 酸味
+  } : {
+    sweetness: 0.3,   // 甘辛度（通常）
+    aroma: 0.25,      // 香り（通常）
+    richness: 0.25,   // コク
+    acidity: 0.2      // 酸味
   };
 
   // 各要素の差を計算（10点満点での差）
@@ -373,6 +419,141 @@ export function getSakeTypeCategoryDescription(category: SakeProfile['sakeTypeCa
   return descriptions[category] || '';
 }
 
+/**
+ * typeClassコード(A,B,C,D)を4タイプ分類名に変換
+ */
+export function convertTypeClassToSakeType(typeClass: string): string {
+  const typeMapping = {
+    'A': '薫酒',
+    'B': '爽酒', 
+    'C': '醇酒',
+    'D': '熟酒'
+  };
+  return typeMapping[typeClass as keyof typeof typeMapping] || typeClass;
+}
+
+/**
+ * マトリックス適合度スコア計算（重みづけ方式）
+ * 1. 4タイプ分類（最優先）
+ * 2. 日本酒度・酸度・アルコール度数（次優先）
+ */
+function calculateMatrixCompatibilityScore(
+  dishType: string,
+  sake: SakeProfile,
+  sakeInRange: boolean,
+  acidityInRange: boolean,
+  alcoholInRange: boolean,
+  typeClassMatch: boolean
+): number {
+  let score = 0;
+  
+  // 1. 4タイプ分類マッチング（最重要）
+  if (typeClassMatch) {
+    score += 10; // 最高優先度
+    console.log(`      🥇 4タイプ分類適合: +10点`);
+  } else {
+    console.log(`      ❌ 4タイプ分類不適合: 0点`);
+    // 4タイプ分類が合わない場合は大幅減点だが完全除外はしない
+    score -= 5;
+  }
+  
+  // 2. 数値的制約（副次的重要度）
+  if (sakeInRange) {
+    score += 3;
+    console.log(`      🥈 日本酒度適合: +3点`);
+  }
+  
+  if (acidityInRange) {
+    score += 2;
+    console.log(`      🥈 酸度適合: +2点`);
+  }
+  
+  if (alcoholInRange) {
+    score += 1;
+    console.log(`      🥈 アルコール度数適合: +1点`);
+  }
+  
+  console.log(`      📊 マトリックス適合度スコア: ${score}点`);
+  return score;
+}
+
+/**
+ * ユーザー好み適合度スコア計算
+ * マトリックス絞り込み後にユーザーの診断結果との適合度を計算
+ */
+function calculateUserPreferenceScore(sake: SakeProfile, diagnosis: DiagnosisResult): number {
+  // ユーザーが香りを重視している場合の動的重み調整
+  const isAromaImportant = diagnosis.aroma >= 7;
+  
+  const weights = isAromaImportant ? {
+    sweetness: 0.35, // 甘辛度
+    aroma: 0.4,      // 香り（ユーザー重視時：40%）
+    richness: 0.15,  // コク
+    acidity: 0.1     // 酸味
+  } : {
+    sweetness: 0.4,  // 甘辛度（通常）
+    aroma: 0.3,      // 香り（通常：30%）
+    richness: 0.2,   // コク
+    acidity: 0.1     // 酸味
+  };
+
+  // 各要素の適合度を計算（10点満点での距離ベース）
+  const sweetnessGap = Math.abs(sake.sweetness - diagnosis.sweetness);
+  const richnessGap = Math.abs(sake.richness - diagnosis.richness);
+  const aromaGap = Math.abs(sake.aroma - diagnosis.aroma);
+  const acidityGap = Math.abs(sake.acidity - diagnosis.acidity);
+
+  // 差が小さいほど高スコア（10 - gap で計算）
+  const sweetnessScore = Math.max(0, 10 - sweetnessGap);
+  const richnessScore = Math.max(0, 10 - richnessGap);
+  const aromaScore = Math.max(0, 10 - aromaGap);
+  const acidityScore = Math.max(0, 10 - acidityGap);
+
+  // 重み付き平均で最終スコアを計算
+  const totalScore = 
+    sweetnessScore * weights.sweetness +
+    richnessScore * weights.richness +
+    aromaScore * weights.aroma +
+    acidityScore * weights.acidity;
+
+  console.log(`      🎯 ユーザー好み適合度スコア: ${Math.round(totalScore * 10) / 10}点`);
+  return Math.round(totalScore * 10) / 10;
+}
+
+/**
+ * 料理の推奨4タイプ分類と日本酒のタイプが一致するかチェック
+ */
+function isMatchingTypeClass(dishType: string, sake: SakeProfile): boolean {
+  // 料理の推奨タイプを取得
+  const dishData = dishCompatibilityData.find(dish => dish.id === dishType);
+  if (!dishData) {
+    console.log(`    料理「${dishType}」のデータが見つかりません`);
+    return true; // データがない場合は制限しない
+  }
+  
+  // 日本酒の4タイプ分類
+  const sakeType = sake.sakeTypeCategory;
+  if (!sakeType) {
+    console.log(`    日本酒「${sake.name}」のタイプ分類がありません`);
+    return true; // タイプ分類がない場合は制限しない
+  }
+  
+  // 推奨タイプリスト作成
+  const recommendedTypes: string[] = [];
+  if (dishData.typeClass1) {
+    recommendedTypes.push(convertTypeClassToSakeType(dishData.typeClass1));
+  }
+  if (dishData.typeClass2 && dishData.typeClass2 !== dishData.typeClass1) {
+    recommendedTypes.push(convertTypeClassToSakeType(dishData.typeClass2));
+  }
+  
+  // 日本酒のタイプが推奨タイプに含まれるかチェック
+  const isMatch = recommendedTypes.includes(sakeType);
+  console.log(`    推奨タイプ: [${recommendedTypes.join(', ')}], 日本酒タイプ: ${sakeType}`);
+  
+  return isMatch;
+}
+
 // ヘルパー関数: Q3の回答を取得
 function findAnswerForQuestion(
   diagnosisResult: { answers?: { questionId: string; selectedOptions: string[] }[] }, 
@@ -403,16 +584,66 @@ function calculateSweetnessBonus(sake: SakeProfile, q3Answer: string): number {
   return 0;
 }
 
-export function getPreferenceDescription(diagnosis: DiagnosisResult): string {
-  // 日本酒度・酸度マトリックスを使った正確な甘辛度判定
+export function getPreferenceDescription(
+  diagnosis: DiagnosisResult,
+  recommendedSakes?: RecommendationScore[]
+): string {
+  // おすすめされた日本酒の特徴を分析
+  if (recommendedSakes && recommendedSakes.length > 0) {
+    return generateRecommendationBasedDescription(diagnosis, recommendedSakes);
+  }
+  
+  // フォールバック: 診断結果のみから生成
+  return generateDiagnosisBasedDescription(diagnosis);
+}
+
+/**
+ * おすすめ日本酒の特徴を踏まえた説明文生成
+ */
+function generateRecommendationBasedDescription(
+  _diagnosis: DiagnosisResult,
+  recommendations: RecommendationScore[]
+): string {
+  const topSake = recommendations[0].sake;
+  
+  // おすすめ日本酒の実際の特徴を使用
+  const nihonshuDegree = topSake.nihonshuDegree ?? convertSweetnessToNihonshuDegree(topSake.sweetness);
+  const realAcidity = topSake.realAcidity ?? topSake.acidity;
+  const sweetnessJudgment = judgeSweetnessByMatrix(nihonshuDegree, realAcidity);
+  
+  const richness = topSake.richness >= 7 ? '濃醇' : 
+                   topSake.richness <= 4 ? '淡麗' : 'バランスの良い';
+  const aroma = topSake.aroma >= 7 ? '華やか' : 
+                topSake.aroma <= 4 ? '控えめ' : '程よい';
+  
+  // 4タイプ分類も含めた説明
+  const typeDescription = topSake.sakeTypeCategory ? 
+    `${topSake.sakeTypeCategory}タイプの` : '';
+  
+  // 複数の特徴を組み合わせた自然な説明文
+  if (recommendations.length === 1) {
+    return `あなたには${typeDescription}${sweetnessJudgment.level}で${richness}、${aroma}な香りの「${topSake.name}」をおすすめします。`;
+  } else {
+    const sakeTypeSet = new Set(recommendations.slice(0, 3).map(r => r.sake.sakeTypeCategory).filter(Boolean));
+    const typeText = sakeTypeSet.size > 0 ? 
+      `${Array.from(sakeTypeSet).join('・')}タイプの` : '';
+    
+    return `あなたには${typeText}${sweetnessJudgment.level}で${richness}、${aroma}な香りの日本酒をおすすめします。`;
+  }
+}
+
+/**
+ * 診断結果のみに基づく説明文生成（フォールバック）
+ */
+function generateDiagnosisBasedDescription(diagnosis: DiagnosisResult): string {
   const estimatedNihonshuDegree = convertSweetnessToNihonshuDegree(diagnosis.sweetness);
-  const estimatedAcidity = diagnosis.acidity; // 酸度は実値と仮定
+  const estimatedAcidity = diagnosis.acidity;
   const sweetnessJudgment = judgeSweetnessByMatrix(estimatedNihonshuDegree, estimatedAcidity);
   
   const richness = diagnosis.richness >= 7 ? '濃醇' : 
-                   diagnosis.richness <= 4 ? '淡麗' : 'バランス';
+                   diagnosis.richness <= 4 ? '淡麗' : 'バランスの良い';
   const aroma = diagnosis.aroma >= 7 ? '華やか' : 
-                diagnosis.aroma <= 4 ? '控えめ' : '程よい香り';
+                diagnosis.aroma <= 4 ? '控えめ' : '程よい';
 
-  return `${sweetnessJudgment.level}で${richness}、${aroma}な香りの日本酒がお好みのようです。`;
+  return `あなたには${sweetnessJudgment.level}で${richness}、${aroma}な香りの日本酒をおすすめします。`;
 }

@@ -2,7 +2,6 @@
 
 import { SakeProfile } from '@/lib/data/sake-data';
 import { getSakeTypeDescription, getSakeTypeCategoryDescription } from '@/lib/recommendation/sake-recommender';
-import { purchaseHandler } from '@/lib/ec/purchase-handler';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,9 +16,8 @@ export function SakeCard({ sake, matchReasons, onPurchase }: SakeCardProps) {
   const handlePurchaseClick = () => {
     if (onPurchase) {
       onPurchase(sake);
-    } else {
-      purchaseHandler.handlePurchase(sake, 'diagnosis');
     }
+    // EC連携機能は削除されました
   };
 
   const getCharacteristicBar = (value: number, label: string) => (
@@ -121,12 +119,13 @@ export function SakeCard({ sake, matchReasons, onPurchase }: SakeCardProps) {
           </div>
         )}
 
-        {/* 購入ボタン */}
+        {/* 詳細表示ボタン（購入機能は無効化） */}
         <Button 
           onClick={handlePurchaseClick}
-          className="w-full bg-green-600 hover:bg-green-700"
+          disabled
+          className="w-full bg-gray-400 cursor-not-allowed"
         >
-          購入サイトで詳細を見る
+          詳細情報
         </Button>
       </CardContent>
     </Card>

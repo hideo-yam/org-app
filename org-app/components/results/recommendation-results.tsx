@@ -3,6 +3,8 @@
 import { DiagnosisResult } from '@/lib/types/diagnosis';
 import { RecommendationScore } from '@/lib/recommendation/sake-recommender';
 import { getPreferenceDescription } from '@/lib/recommendation/sake-recommender';
+import { convertSweetnessToNihonshuDegree } from '@/lib/data/sake-data';
+import { judgeSweetnessByMatrix } from '@/lib/utils/sake-sweetness-calculator';
 import { SakeCard } from '@/components/sake/sake-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,7 +21,7 @@ export function RecommendationResults({
   recommendations, 
   onRetry 
 }: RecommendationResultsProps) {
-  const preferenceDescription = getPreferenceDescription(diagnosisResult);
+  const preferenceDescription = getPreferenceDescription(diagnosisResult, recommendations);
 
   const getCharacteristicLevel = (value: number) => {
     if (value >= 8) return '高';
@@ -27,6 +29,18 @@ export function RecommendationResults({
     if (value >= 4) return '中';
     return '低';
   };
+
+  // 甘辛度の正確な表示
+  const getSweetnessDisplay = (sweetnessValue: number) => {
+    const nihonshuDegree = convertSweetnessToNihonshuDegree(sweetnessValue);
+    const sweetnessJudgment = judgeSweetnessByMatrix(nihonshuDegree, diagnosisResult.acidity);
+    return {
+      label: sweetnessJudgment.level,
+      description: sweetnessJudgment.description
+    };
+  };
+
+  const sweetnessDisplay = getSweetnessDisplay(diagnosisResult.sweetness);
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8">
@@ -40,12 +54,12 @@ export function RecommendationResults({
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                {diagnosisResult.sweetness}
+              <div className="text-lg font-bold text-blue-600">
+                {sweetnessDisplay.label}
               </div>
-              <div className="text-sm text-gray-600">甘さ</div>
-              <Badge variant="outline" className="mt-1">
-                {getCharacteristicLevel(diagnosisResult.sweetness)}
+              <div className="text-sm text-gray-600">甘辛度</div>
+              <Badge variant="outline" className="mt-1 text-xs">
+                {sweetnessDisplay.description}
               </Badge>
             </div>
             <div className="text-center">

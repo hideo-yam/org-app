@@ -1,6 +1,8 @@
 // お酒とお料理相性マトリックスから抽出した詳細料理データ
 // CSVファイル「料理（和食・中華・洋食）とお酒の相性データマトリックス.csv」から取得
 
+import { convertTypeClassToSakeType } from '@/lib/recommendation/sake-recommender';
+
 export interface DishCompatibilityDetail {
   id: string;
   name: string;
@@ -13,9 +15,24 @@ export interface DishCompatibilityDetail {
     alcoholMin: number;
     alcoholMax: number;
   };
-  typeClass1: string;
-  typeClass2: string;
+  typeClass1: string; // A=薫酒, B=爽酒, C=醇酒, D=熟酒
+  typeClass2: string; // A=薫酒, B=爽酒, C=醇酒, D=熟酒
   matchBonus: number;
+}
+
+/**
+ * 料理の推奨4タイプ分類を取得
+ */
+export function getDishRecommendedSakeTypes(dishId: string): string[] {
+  const dish = dishCompatibilityData.find(d => d.id === dishId);
+  if (!dish) return [];
+  
+  const types = [];
+  if (dish.typeClass1) types.push(convertTypeClassToSakeType(dish.typeClass1));
+  if (dish.typeClass2 && dish.typeClass2 !== dish.typeClass1) {
+    types.push(convertTypeClassToSakeType(dish.typeClass2));
+  }
+  return types;
 }
 
 export const dishCompatibilityData: DishCompatibilityDetail[] = [
