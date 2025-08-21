@@ -14,7 +14,7 @@ import {
 } from '@/lib/types/diagnosis';
 
 interface DiagnosisFormProps {
-  onComplete: (result: DiagnosisResult & { cuisineType?: string; specificDish?: string }) => void;
+  onComplete: (result: DiagnosisResult & { cuisineType?: string; specificDish?: string; answers?: DiagnosisAnswer[] }) => void;
 }
 
 export function DiagnosisForm({ onComplete }: DiagnosisFormProps) {
@@ -125,7 +125,7 @@ export function DiagnosisForm({ onComplete }: DiagnosisFormProps) {
       if (isLastQuestion) {
         console.log('This is the last question, completing diagnosis');
         const result = calculateResult(newAnswers);
-        onComplete(result);
+        onComplete({ ...result, answers: newAnswers });
         return;
       } else {
         console.log('Not the last question, proceeding to next');
@@ -270,9 +270,7 @@ export function DiagnosisForm({ onComplete }: DiagnosisFormProps) {
 
       if (question.type === 'scale') {
         const value = answer.scaleValue || 5;
-        if (question.id === 'q3') {
-          sweetness = value;
-        } else if (question.id === 'q4') {
+        if (question.id === 'q4') {
           aroma = value;
         }
       } else {

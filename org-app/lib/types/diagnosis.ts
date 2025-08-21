@@ -168,11 +168,28 @@ export const diagnosisQuestions: DiagnosisQuestion[] = [
   },
   {
     id: 'q3',
-    question: '甘口が好みですか？',
-    type: 'scale',
-    scaleMin: 1,
-    scaleMax: 10,
-    scaleLabels: ['苦手', '大好き']
+    question: '甘口、辛口のどちらがお好みですか？',
+    type: 'single',
+    options: [
+      {
+        id: 'amakuchi',
+        text: '甘口',
+        value: 'amakuchi',
+        weight: { sweetness: 2, richness: 0, acidity: 0, aroma: 0 }
+      },
+      {
+        id: 'karakuchi',
+        text: '辛口',
+        value: 'karakuchi',
+        weight: { sweetness: -2, richness: 0, acidity: 0, aroma: 0 }
+      },
+      {
+        id: 'either',
+        text: 'どちらでも良い',
+        value: 'either',
+        weight: { sweetness: 0, richness: 0, acidity: 0, aroma: 0 }
+      }
+    ]
   },
   {
     id: 'q4',
