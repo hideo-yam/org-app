@@ -37,10 +37,10 @@ export const sakeData: SakeProfile[] = [
     aroma: 8.5,     // Aタイプは香り高い
     type: "純米酒",
     prefecture: "新潟県",
-    description: "マトリックスデータ基準の純米酒。日本酒度-2、酸度1.0のAタイプ。やわらかな甘みと上品な香りが特徴。",
+    description: "やわらかな甘みと上品な香りが特徴の薫酒タイプの純米酒。日本酒度-2、酸度1.0。",
     imageUrl: "https://example.com/marumarushomune.jpg",
     // ecUrl: "https://issendo.jp/?pid=marumarushomune_junmai", // EC連携機能は削除されました
-    tags: ["純米酒", "Aタイプ", "お手頃", "やわらか", "甘み"],
+    tags: ["純米酒", "薫酒", "お手頃", "やわらか", "甘み"],
     sakeTypeCategory: "薫酒",
     nihonshuDegree: -2,
     realAcidity: 1.0
@@ -60,10 +60,10 @@ export const sakeData: SakeProfile[] = [
     aroma: 6.0,     // Bタイプはバランス良い
     type: "吟醸酒",
     prefecture: "京都府", 
-    description: "マトリックスデータ基準の吟醸酒。日本酒度10、酸度2.0のBタイプ。高アルコールの力強い大辛口。",
+    description: "アルコール度数高めの力強い大辛口の爽酒タイプの吟醸酒。日本酒度10、酸度2.0。",
     imageUrl: "https://example.com/batsunishiki.jpg",
     // ecUrl: "https://issendo.jp/?pid=batsunishiki_ginjo", // EC連携機能は削除されました
-    tags: ["吟醸酒", "Bタイプ", "大辛口", "高アルコール", "力強い"],
+    tags: ["吟醸酒", "爽酒", "大辛口", "アルコール度数高め", "力強い"],
     sakeTypeCategory: "爽酒",
     nihonshuDegree: 10,
     realAcidity: 2.0
@@ -83,10 +83,10 @@ export const sakeData: SakeProfile[] = [
     aroma: 5.5,     // Cタイプはコクあり
     type: "普通酒",
     prefecture: "北海道",
-    description: "マトリックスデータ基準の普通酒。日本酒度3、酸度1.0のCタイプ。コストパフォーマンス抜群の辛口。",
+    description: "コストパフォーマンス抜群の辛口の醇酒タイプの普通酒。日本酒度3、酸度1.0。",
     imageUrl: "https://example.com/sankakuotokoyama.jpg", 
     // ecUrl: "https://issendo.jp/?pid=sankakuotokoyama_futsushu", // EC連携機能は削除されました
-    tags: ["普通酒", "Cタイプ", "コスパ良", "辛口", "濃醇"],
+    tags: ["普通酒", "醇酒", "コスパ良", "辛口", "濃醇"],
     sakeTypeCategory: "醇酒",
     nihonshuDegree: 3,
     realAcidity: 1.0

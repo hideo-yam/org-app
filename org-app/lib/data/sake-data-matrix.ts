@@ -5,6 +5,17 @@
 
 import { SakeProfile } from './sake-data';
 
+// タイプクラス変換関数
+function convertTypeClassToSakeTypeName(typeClass: string): string {
+  const typeMapping = {
+    'A': '薫酒',
+    'B': '爽酒',
+    'C': '醇酒',
+    'D': '熟酒'
+  };
+  return typeMapping[typeClass as keyof typeof typeMapping] || typeClass;
+}
+
 // マトリックスCSVデータから抽出したお酒の基本情報
 export interface MatrixSakeData {
   name: string;
@@ -105,12 +116,12 @@ export function convertMatrixToSakeProfile(matrixData: MatrixSakeData): SakeProf
     aroma: characteristics.aroma,
     type: matrixData.category as SakeProfile['type'],
     prefecture,
-    description: `マトリックスデータ基準の${matrixData.category}。日本酒度${matrixData.nihonshuDegree >= 0 ? '+' : ''}${matrixData.nihonshuDegree}、酸度${matrixData.acidity}の${matrixData.typeClass}タイプ。`,
+    description: `日本酒度${matrixData.nihonshuDegree >= 0 ? '+' : ''}${matrixData.nihonshuDegree}、酸度${matrixData.acidity}の${convertTypeClassToSakeTypeName(matrixData.typeClass)}タイプの${matrixData.category}。`,
     imageUrl: `https://example.com/${matrixData.name}.jpg`,
     ecUrl: `https://issendo.jp/?pid=${matrixData.name}`,
     tags: [
       matrixData.category,
-      matrixData.typeClass + 'タイプ',
+      convertTypeClassToSakeTypeName(matrixData.typeClass),
       matrixData.priceRange === 'H' ? '高級' : matrixData.priceRange === 'L' ? 'コスパ良' : 'お手頃'
     ],
     sakeTypeCategory: characteristics.sakeTypeCategory,
@@ -189,10 +200,10 @@ export function getExpandedMatrixSakeData(): SakeProfile[] {
     aroma: 5.5,
     type: "本醸造",
     prefecture: "広島県",
-    description: "焼き物の香ばしさに負けない力強い本醸造。高アルコールでしっかりとした味わい。",
+    description: "焼き物の香ばしさに負けない力強い本醸造。アルコール度数高めでしっかりとした味わい。",
     imageUrl: "https://example.com/enbu.jpg", 
     ecUrl: "https://issendo.jp/?pid=enbu_honjozo",
-    tags: ["焼き物", "力強い", "高アルコール", "香ばしい"],
+    tags: ["焼き物", "力強い", "アルコール度数高め", "香ばしい"],
     sakeTypeCategory: "醇酒",
     nihonshuDegree: 7,
     realAcidity: 1.8

@@ -53,6 +53,49 @@ export function recommendSakes(
     console.log(`✅ 全マトリックス対象: 色々な料理対応で${candidateSakes.length}本を選定`);
   }
   
+  // Q3甘辛選択による追加フィルタリング
+  const q3Answer = findAnswerForQuestion(diagnosisResult, 'q3');
+  if (q3Answer === 'amakuchi' || q3Answer === 'karakuchi') {
+    console.log(`🍯 Q3甘辛選択フィルタリング: ${q3Answer === 'amakuchi' ? '甘口選択→辛口除外' : '辛口選択→甘口除外'}`);
+    
+    const beforeCount = candidateSakes.length;
+    candidateSakes = candidateSakes.filter(sake => {
+      const nihonshuDegree = sake.nihonshuDegree ?? convertSweetnessToNihonshuDegree(sake.sweetness);
+      const realAcidity = sake.realAcidity ?? sake.acidity;
+      const sweetnessJudgment = judgeSweetnessByMatrix(nihonshuDegree, realAcidity);
+      
+      if (q3Answer === 'amakuchi') {
+        // 甘口選択時：辛口を除外
+        const isAllowed = sweetnessJudgment.category !== 'karakuchi';
+        console.log(`  ${sake.name}: ${isAllowed ? '✅' : '❌'} (${sweetnessJudgment.level})`);
+        return isAllowed;
+      } else {
+        // 辛口選択時：甘口を除外
+        const isAllowed = sweetnessJudgment.category !== 'amakuchi';
+        console.log(`  ${sake.name}: ${isAllowed ? '✅' : '❌'} (${sweetnessJudgment.level})`);
+        return isAllowed;
+      }
+    });
+    
+    console.log(`✅ Q3甘辛フィルタリング完了: ${beforeCount}本 → ${candidateSakes.length}本`);
+  }
+  
+  // Q4選択による4タイプ分類フィルタリング（香りの好み：1-4は控えめ好き）
+  const q4Answer = findScaleAnswerForQuestion(diagnosisResult, 'q4');
+  if (q4Answer !== null && q4Answer >= 1 && q4Answer <= 4) {
+    console.log(`🎯 Q4選択フィルタリング: 香り控えめ好み(${q4Answer})→薫酒・熟酒除外`);
+    
+    const beforeCount = candidateSakes.length;
+    candidateSakes = candidateSakes.filter(sake => {
+      const sakeType = sake.sakeTypeCategory;
+      const isAllowed = sakeType !== '薫酒' && sakeType !== '熟酒';
+      console.log(`  ${sake.name}: ${isAllowed ? '✅' : '❌'} (${sakeType || '未分類'})`);
+      return isAllowed;
+    });
+    
+    console.log(`✅ Q4タイプ分類フィルタリング完了: ${beforeCount}本 → ${candidateSakes.length}本`);
+  }
+  
   // マトリックスベースなので必ず候補が存在するはず
   if (candidateSakes.length === 0) {
     console.warn(`⚠️ 警告: マトリックス範囲内に適合する日本酒がありません。全データから選定します。`);
@@ -162,10 +205,8 @@ function isWithinMatrixCompatibilityRange(
   const typeClassMatch = isMatchingTypeClass(dishType, sake);
   console.log(`      4タイプ分類: ${typeClassMatch ? '✅' : '❌'} (${sake.sakeTypeCategory || '未分類'})`);
   
-  // 重みづけによる段階的絞り込み
-  return calculateMatrixCompatibilityScore(
-    dishType, sake, sakeInRange, acidityInRange, alcoholInRange, typeClassMatch
-  ) > 0;
+  // OR条件による絞り込み：4タイプ分類または数値範囲のいずれかが適合すれば許可
+  return typeClassMatch || (sakeInRange && acidityInRange && alcoholInRange);
 }
 
 // 料理カテゴリマトリックスの範囲内にあるかチェック（マトリックス完全準拠）
@@ -433,8 +474,8 @@ export function convertTypeClassToSakeType(typeClass: string): string {
 }
 
 /**
- * マトリックス適合度スコア計算（重みづけ方式）
- * 1. 4タイプ分類（最優先）
+ * マトリックス適合度スコア計算（OR条件方式）
+ * 1. 4タイプ分類（OR条件でマッチング）
  * 2. 日本酒度・酸度・アルコール度数（次優先）
  */
 function calculateMatrixCompatibilityScore(
@@ -447,14 +488,13 @@ function calculateMatrixCompatibilityScore(
 ): number {
   let score = 0;
   
-  // 1. 4タイプ分類マッチング（最重要）
+  // 1. 4タイプ分類マッチング（OR条件で評価）
   if (typeClassMatch) {
-    score += 10; // 最高優先度
-    console.log(`      🥇 4タイプ分類適合: +10点`);
+    score += 10; // OR条件でいずれかにマッチした場合の高得点
+    console.log(`      🥇 4タイプ分類適合（OR条件）: +10点`);
   } else {
     console.log(`      ❌ 4タイプ分類不適合: 0点`);
-    // 4タイプ分類が合わない場合は大幅減点だが完全除外はしない
-    score -= 5;
+    // OR条件でもマッチしない場合は減点なし（除外条件から変更）
   }
   
   // 2. 数値的制約（副次的重要度）
@@ -521,7 +561,7 @@ function calculateUserPreferenceScore(sake: SakeProfile, diagnosis: DiagnosisRes
 }
 
 /**
- * 料理の推奨4タイプ分類と日本酒のタイプが一致するかチェック
+ * 料理の推奨4タイプ分類と日本酒のタイプが一致するかチェック（OR条件）
  */
 function isMatchingTypeClass(dishType: string, sake: SakeProfile): boolean {
   // 料理の推奨タイプを取得
@@ -538,18 +578,15 @@ function isMatchingTypeClass(dishType: string, sake: SakeProfile): boolean {
     return true; // タイプ分類がない場合は制限しない
   }
   
-  // 推奨タイプリスト作成
-  const recommendedTypes: string[] = [];
-  if (dishData.typeClass1) {
-    recommendedTypes.push(convertTypeClassToSakeType(dishData.typeClass1));
-  }
-  if (dishData.typeClass2 && dishData.typeClass2 !== dishData.typeClass1) {
-    recommendedTypes.push(convertTypeClassToSakeType(dishData.typeClass2));
-  }
+  // OR条件: typeClass1またはtypeClass2のいずれかにマッチすれば適合
+  const isMatch1 = Boolean(dishData.typeClass1 && convertTypeClassToSakeType(dishData.typeClass1) === sakeType);
+  const isMatch2 = Boolean(dishData.typeClass2 && convertTypeClassToSakeType(dishData.typeClass2) === sakeType);
   
-  // 日本酒のタイプが推奨タイプに含まれるかチェック
-  const isMatch = recommendedTypes.includes(sakeType);
-  console.log(`    推奨タイプ: [${recommendedTypes.join(', ')}], 日本酒タイプ: ${sakeType}`);
+  const isMatch = isMatch1 || isMatch2;
+  
+  console.log(`    推奨タイプ1: ${dishData.typeClass1 ? convertTypeClassToSakeType(dishData.typeClass1) : 'なし'} ${isMatch1 ? '✅' : '❌'}`);
+  console.log(`    推奨タイプ2: ${dishData.typeClass2 ? convertTypeClassToSakeType(dishData.typeClass2) : 'なし'} ${isMatch2 ? '✅' : '❌'}`);
+  console.log(`    日本酒タイプ: ${sakeType}, OR条件結果: ${isMatch ? '✅' : '❌'}`);
   
   return isMatch;
 }
@@ -562,6 +599,18 @@ function findAnswerForQuestion(
   if (diagnosisResult.answers) {
     const answer = diagnosisResult.answers.find((a) => a.questionId === questionId);
     return answer?.selectedOptions?.[0] || null;
+  }
+  return null;
+}
+
+// ヘルパー関数: スケール回答を取得
+function findScaleAnswerForQuestion(
+  diagnosisResult: { answers?: { questionId: string; scaleValue?: number }[] }, 
+  questionId: string
+): number | null {
+  if (diagnosisResult.answers) {
+    const answer = diagnosisResult.answers.find((a) => a.questionId === questionId);
+    return answer?.scaleValue ?? null;
   }
   return null;
 }
