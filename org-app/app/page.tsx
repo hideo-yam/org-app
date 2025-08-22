@@ -4,7 +4,8 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="min-h-screen flex flex-col items-center">
+    <main className="min-h-screen flex flex-col items-center bg-cover bg-center bg-no-repeat bg-fixed bg-gray-100 dark:bg-gray-900" 
+          style={{backgroundImage: `linear-gradient(rgba(255,255,255,0.8), rgba(255,255,255,0.8)), url(/お酒と料理_画像.JPG)`, backgroundSize: '100% 100%'}}>
       <div className="flex-1 w-full flex flex-col gap-20 items-center">
         <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
           <div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">
