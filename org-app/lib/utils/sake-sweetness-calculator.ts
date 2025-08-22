@@ -9,16 +9,6 @@ export interface SweetnessJudgment {
   category: 'amakuchi' | 'neutral' | 'karakuchi';
 }
 
-/**
- * 日本酒度と酸度による辛甘判定マトリックス
- */
-const SWEETNESS_MATRIX = {
-  // 酸度範囲別の判定テーブル
-  lowAcidity: { min: 1.0, max: 1.2 }, // 低酸度
-  midAcidity: { min: 1.3, max: 1.5 }, // 中酸度  
-  highAcidity: { min: 1.6, max: 1.8 }, // 高酸度
-  veryHighAcidity: { min: 1.9, max: 2.5 } // 超高酸度
-};
 
 /**
  * 日本酒度による基本的な甘辛判定

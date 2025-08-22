@@ -1,8 +1,8 @@
 import { DiagnosisResult } from '@/lib/types/diagnosis';
 import { SakeProfile, sakeData, convertSweetnessToNihonshuDegree } from '@/lib/data/sake-data';
-import { calculateCuisineCompatibility, calculateSpecificDishCompatibility, getCuisineDescription, isKarakuchi, isAmakuchi } from '@/lib/data/cuisine-compatibility';
+import { calculateCuisineCompatibility, calculateSpecificDishCompatibility, getCuisineDescription } from '@/lib/data/cuisine-compatibility';
 import { dishCompatibilityData, getDishDisplayName } from '@/lib/data/dish-compatibility-matrix';
-import { judgeSweetnessByMatrix, getSweetnessAnalysis, isKarakuchi as isKarakuchiMatrix, isAmakuchi as isAmakuchiMatrix } from '@/lib/utils/sake-sweetness-calculator';
+import { judgeSweetnessByMatrix } from '@/lib/utils/sake-sweetness-calculator';
 
 export interface RecommendationScore {
   sake: SakeProfile;
@@ -18,7 +18,6 @@ export function recommendSakes(
 ): RecommendationScore[] {
   // **マトリックスベース推薦**: CSVマトリックスデータに基づく完全制御
   let candidateSakes: SakeProfile[] = [];
-  const matrixFilterApplied = true;
   
   console.log(`🍶 マトリックスベース推薦開始: 料理=${specificDish || cuisineType || '汎用'}`);
   
@@ -105,10 +104,10 @@ export function recommendSakes(
   // 第二段階: 日本酒度・香味による重み付け計算
   const recommendations: RecommendationScore[] = candidateSakes.map(sake => {
     // 基本診断との適合度を計算
-    const baseScore = calculateCompatibilityScore(sake, diagnosisResult);
+    calculateCompatibilityScore(sake, diagnosisResult);
     
     // 日本酒度・香味に基づく重み付けスコア
-    const sakeCharacteristicScore = calculateSakeCharacteristicScore(sake, diagnosisResult);
+    calculateSakeCharacteristicScore(sake, diagnosisResult);
     
     // マトリックス適合度スコア（最優先）
     let matrixScore = 0;
@@ -479,8 +478,8 @@ export function convertTypeClassToSakeType(typeClass: string): string {
  * 2. 日本酒度・酸度・アルコール度数（次優先）
  */
 function calculateMatrixCompatibilityScore(
-  dishType: string,
-  sake: SakeProfile,
+  _dishType: string,
+  _sake: SakeProfile,
   sakeInRange: boolean,
   acidityInRange: boolean,
   alcoholInRange: boolean,
@@ -615,23 +614,6 @@ function findScaleAnswerForQuestion(
   return null;
 }
 
-// 甘辛度ボーナスの計算（日本酒度・酸度マトリックスベース）
-function calculateSweetnessBonus(sake: SakeProfile, q3Answer: string): number {
-  const nihonshuDegree = sake.nihonshuDegree ?? convertSweetnessToNihonshuDegree(sake.sweetness);
-  const realAcidity = sake.realAcidity ?? sake.acidity;
-  
-  const sweetnessJudgment = judgeSweetnessByMatrix(nihonshuDegree, realAcidity);
-  
-  if (q3Answer === 'amakuchi') {
-    // 甘口好みの場合、マトリックス判定で甘口の日本酒にボーナス
-    return sweetnessJudgment.category === 'amakuchi' ? 0.5 : 0;
-  } else if (q3Answer === 'karakuchi') {
-    // 辛口好みの場合、マトリックス判定で辛口の日本酒にボーナス
-    return sweetnessJudgment.category === 'karakuchi' ? 0.5 : 0;
-  }
-  // 'either'の場合はボーナスなし
-  return 0;
-}
 
 export function getPreferenceDescription(
   diagnosis: DiagnosisResult,
