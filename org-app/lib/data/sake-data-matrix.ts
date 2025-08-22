@@ -118,7 +118,6 @@ export function convertMatrixToSakeProfile(matrixData: MatrixSakeData): SakeProf
     prefecture,
     description: `日本酒度${matrixData.nihonshuDegree >= 0 ? '+' : ''}${matrixData.nihonshuDegree}、酸度${matrixData.acidity}の${convertTypeClassToSakeTypeName(matrixData.typeClass)}タイプの${matrixData.category}。`,
     imageUrl: `https://example.com/${matrixData.name}.jpg`,
-    ecUrl: `https://issendo.jp/?pid=${matrixData.name}`,
     tags: [
       matrixData.category,
       convertTypeClassToSakeTypeName(matrixData.typeClass),
